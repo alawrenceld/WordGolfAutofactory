@@ -10,7 +10,6 @@ Turn a starting word into a target word, one letter at a time. Every step must b
 ## Repository layout
 
 ```
-.
   plan.md            # the full project plan (audiences, game design, phases, demo script)
   word_lists/        # source 5-letter word lists (validity set, answers, common, difficult)
   word-golf/         # the application monorepo (see word-golf/README.md)
