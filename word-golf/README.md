@@ -2,6 +2,9 @@
 
 A tiny, replayable word puzzle: turn one word into another, one letter at a time. Each move must change exactly one letter and form a valid word. An invalid move bounces back to the last good word -- the rollback metaphor at the heart of the LaunchDarkly AutoFactory showcase.
 
+> **Built to run on the [LaunchDarkly AutoFactory](https://github.com/alawrenceld/launchdarkly-auto-factory).**
+> The AutoFactory is the autonomous, metric-guarded release pipeline this game is a showcase for: a chain of AI agents flags a PR, instruments metrics, writes tests, and runs guarded releases that auto-roll-back on regression. Word Golf is the demo payload it operates on. Eventually the factory components will be merged into this repo so Word Golf works as a self-contained AutoFactory; for now, see the upstream repo to set up the pipeline.
+
 This repo is built in phases (see the project `plan.md`). **Phase 0** is the playable core: a tested game engine plus a minimal Daily-mode UI. No LaunchDarkly integration yet.
 
 ## Layout
