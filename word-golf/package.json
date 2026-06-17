@@ -1,0 +1,21 @@
+{
+  "name": "word-golf",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A tiny, replayable word puzzle that doubles as a live showcase of the LaunchDarkly AutoFactory.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "test": "npm run test --workspace packages/engine",
+    "verify:play": "node --import tsx scripts/verify-playthrough.ts",
+    "typecheck": "tsc --build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,14 @@
+# Separately-cloned upstream repo; not part of this project's history.
+launchdarkly-auto-factory/
+
+# Dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Env & local
+.env
+.env.local
+
+# OS
+.DS_Store
