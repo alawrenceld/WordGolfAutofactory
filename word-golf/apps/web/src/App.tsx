@@ -1,4 +1,10 @@
-import { useMemo, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   makeDailyPuzzle,
   scoreLabel,
@@ -8,6 +14,7 @@ import {
   type MoveRejection,
   type Puzzle,
 } from "@word-golf/engine";
+import { FLAG_KEYS, METRIC_EVENTS, useFlag, useTrack } from "@word-golf/ld";
 import { graph, startPool, targetPool } from "./words.js";
 
 const REJECTION_COPY: Record<MoveRejection, string> = {
@@ -24,6 +31,9 @@ interface Feedback {
 
 export function App() {
   const today = utcDateString();
+  const track = useTrack();
+  const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+
   const puzzle = useMemo<Puzzle>(
     () =>
       makeDailyPuzzle({ dateUtc: today, startPool, graph, steps: 6, targetPool }),
@@ -37,16 +47,54 @@ export function App() {
   const current = path[path.length - 1];
   const moves = path.length - 1;
   const won = current === puzzle.target;
+  const par = puzzle.par ?? moves;
+
+  // Timing + once-only guards for metric events.
+  const startTimeRef = useRef(Date.now());
+  const lastMoveRef = useRef(Date.now());
+  const completedRef = useRef(false);
+
+  // Business + latency: fire once when the puzzle is solved.
+  useEffect(() => {
+    if (!won || completedRef.current) return;
+    completedRef.current = true;
+    track(METRIC_EVENTS.puzzleCompleted, { data: { moves, par } });
+    track(METRIC_EVENTS.timeToSolveMs, {
+      value: Date.now() - startTimeRef.current,
+    });
+    if (moves <= par) track(METRIC_EVENTS.madePar, { data: { moves, par } });
+  }, [won, moves, par, track]);
+
+  // Error: count an abandon if the player leaves mid-puzzle after moving.
+  const wonRef = useRef(won);
+  const movesRef = useRef(moves);
+  wonRef.current = won;
+  movesRef.current = moves;
+  useEffect(() => {
+    const onLeave = () => {
+      if (!wonRef.current && movesRef.current > 0) {
+        track(METRIC_EVENTS.puzzleAbandoned, {
+          data: { moves: movesRef.current },
+        });
+      }
+    };
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [track]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (won) return;
     const result = validateMove(current, input, graph);
     if (!result.ok) {
+      track(METRIC_EVENTS.invalidMove, { data: { reason: result.reason } });
       setFeedback({ kind: "error", text: REJECTION_COPY[result.reason] });
       setInput("");
       return;
     }
+    const now = Date.now();
+    track(METRIC_EVENTS.moveLatencyMs, { value: now - lastMoveRef.current });
+    lastMoveRef.current = now;
     const nextPath = [...path, result.word];
     setPath(nextPath);
     setInput("");
@@ -67,6 +115,9 @@ export function App() {
     setPath([puzzle.start]);
     setInput("");
     setFeedback(null);
+    startTimeRef.current = Date.now();
+    lastMoveRef.current = Date.now();
+    completedRef.current = false;
   }
 
   return (
@@ -115,7 +166,7 @@ export function App() {
       {won ? (
         <section className="win">
           <h2>
-            {scoreLabel(moves, puzzle.par ?? moves)} — solved in {moves}
+            {scoreLabel(moves, par)} — solved in {moves}
             {puzzle.par !== null ? ` (par ${puzzle.par})` : ""}
           </h2>
           <button type="button" onClick={reset}>
@@ -151,6 +202,15 @@ export function App() {
         >
           {feedback.text}
         </p>
+      )}
+
+      {/* Flag-evaluation seam: gated by the `show-mission-control` flag. The
+          AutoFactory can flip this in LaunchDarkly; the real panel arrives in a
+          later phase. */}
+      {showMissionControl && (
+        <footer className="mission-control-stub">
+          Mission Control — coming soon
+        </footer>
       )}
     </main>
   );

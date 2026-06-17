@@ -1,0 +1,76 @@
+{
+  "metrics": [
+    {
+      "key": "puzzle_completed",
+      "name": "Puzzle Completed",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "A puzzle was solved (reached the target word)."
+    },
+    {
+      "key": "made_par",
+      "name": "Made Par",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "Puzzle solved in moves <= par."
+    },
+    {
+      "key": "daily_returned",
+      "name": "Daily Returned",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "Player returned for a subsequent daily puzzle."
+    },
+    {
+      "key": "result_shared",
+      "name": "Result Shared",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "Player shared their spoiler-free result."
+    },
+    {
+      "key": "time_to_solve_ms",
+      "name": "Time To Solve (ms)",
+      "category": "latency",
+      "kind": "numeric",
+      "unit": "ms",
+      "successCriteria": "LowerThanBaseline",
+      "description": "Milliseconds from puzzle start to solve."
+    },
+    {
+      "key": "move_latency_ms",
+      "name": "Move Latency (ms)",
+      "category": "latency",
+      "kind": "numeric",
+      "unit": "ms",
+      "successCriteria": "LowerThanBaseline",
+      "description": "Milliseconds between successive valid moves."
+    },
+    {
+      "key": "invalid_move",
+      "name": "Invalid Move",
+      "category": "error",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "LowerThanBaseline",
+      "description": "A submitted move was rejected (not a word / multi-letter change)."
+    },
+    {
+      "key": "puzzle_abandoned",
+      "name": "Puzzle Abandoned",
+      "category": "error",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "LowerThanBaseline",
+      "description": "Player left mid-puzzle after at least one move."
+    }
+  ]
+}

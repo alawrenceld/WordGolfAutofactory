@@ -212,3 +212,15 @@ button:disabled {
 .win h2 {
   margin: 0 0 12px;
 }
+
+.mission-control-stub {
+  margin: 24px 0 0;
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}

@@ -1,0 +1,49 @@
+{
+  "flags": [
+    {
+      "key": "hint-button",
+      "name": "Hint Button",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "A hint raises completion but may hurt made-par.",
+      "watchedMetric": "made_par"
+    },
+    {
+      "key": "par-algorithm",
+      "name": "Par Algorithm",
+      "kind": "string",
+      "variations": ["shortest", "no-reuse", "heuristic"],
+      "defaultVariation": 0,
+      "hypothesis": "Different par math changes perceived difficulty.",
+      "watchedMetric": "puzzle_completed"
+    },
+    {
+      "key": "word-pool-difficulty",
+      "name": "Word Pool Difficulty",
+      "kind": "string",
+      "variations": ["easy", "medium", "hard"],
+      "defaultVariation": 1,
+      "hypothesis": "Harder pairs lower completion but raise engagement.",
+      "watchedMetric": "puzzle_completed"
+    },
+    {
+      "key": "daily-theme",
+      "name": "Daily Theme",
+      "kind": "string",
+      "variations": ["", "classic", "retro"],
+      "defaultVariation": 0,
+      "hypothesis": "Cosmetic; null hypothesis (no-impact -> promote).",
+      "watchedMetric": "daily_returned"
+    },
+    {
+      "key": "show-mission-control",
+      "name": "Show Mission Control",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 1,
+      "hypothesis": "Operational kill switch for the showcase panel.",
+      "watchedMetric": null
+    }
+  ]
+}

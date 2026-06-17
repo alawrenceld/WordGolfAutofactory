@@ -1,0 +1,48 @@
+# LaunchDarkly Auto-Factory — Phase 1
+#
+# Runs on every PR to this repo. A chain of LaunchDarkly AI-config agents
+# classifies the PR and, when it is flag-worthy, creates a feature flag
+# (targeting off) in the app project, wires it into the code, instruments
+# guarded-release metrics, writes flag-on/flag-off tests, and posts a verdict.
+#
+# Setup (see word-golf/.env.example):
+#   Secrets:   LD_SDK_KEY, LD_API_KEY, ANTHROPIC_API_KEY
+#   Variable:  LD_APP_PROJECT_KEY  (e.g. word-golf)
+# GITHUB_TOKEN is provided automatically by GitHub Actions.
+
+name: LaunchDarkly Auto-Factory
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write # agents commit flag wiring, metrics, and tests to the PR branch
+  pull-requests: write # post the summary comment
+
+jobs:
+  auto-factory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out the PR's head branch so agents can commit and push back.
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: LaunchDarkly Auto-Factory Phase 1
+        uses: alawrenceld/launchdarkly-auto-factory/packages/phase1-resource-factory@main
+        with:
+          ld_sdk_key: ${{ secrets.LD_SDK_KEY }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          ld_app_project_key: ${{ vars.LD_APP_PROJECT_KEY }}
+          ld_api_key: ${{ secrets.LD_API_KEY }}
+          # The Word Golf app lives in the word-golf/ subdirectory.
+          sandbox_root: word-golf
+          enable_flag_creation: "true" # create real flags/metrics in the app project
+          enable_code_changes: "true" # commit wiring + tests to the PR branch
+          pr_branch: ${{ github.event.pull_request.head.ref }}
+          pr_base: ${{ github.event.pull_request.base.ref }}
+          graph_key: gha-auto-factory
+          approval_mode: yolo
+          github_token: ${{ secrets.GITHUB_TOKEN }}
