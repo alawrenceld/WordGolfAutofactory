@@ -10,6 +10,9 @@ Scope: **Phase 1** (per-PR agents) plus the app-side LaunchDarkly integration.
 The Phase 2 guarded-release-on-deploy auto-rollback (Beacon) is a later
 milestone and needs hosting + a deploy target.
 
+For the design rationale (control plane vs data plane, why two projects, 1:many
+topology), see [AUTOFACTORY-ARCHITECTURE.md](AUTOFACTORY-ARCHITECTURE.md).
+
 ## How it fits together
 
 ```
