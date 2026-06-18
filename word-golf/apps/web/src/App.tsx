@@ -35,6 +35,7 @@ export function App() {
   const today = utcDateString();
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+  const hintButtonEnabled = useFlag(FLAG_KEYS.hintButton);
 
   const puzzle = useMemo<Puzzle>(
     () =>
@@ -204,9 +205,11 @@ export function App() {
           <button type="button" onClick={undo} disabled={path.length <= 1}>
             Undo
           </button>
-          <button type="button" onClick={hint}>
-            Hint
-          </button>
+          {hintButtonEnabled && (
+            <button type="button" onClick={hint}>
+              Hint
+            </button>
+          )}
         </form>
       )}
 
