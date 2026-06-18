@@ -1,0 +1,98 @@
+# Build the Word Golf web app image and deploy it to Google Cloud Run.
+#
+# - Pull requests: build only (validate the Dockerfile). No push, no deploy.
+# - Pushes to main / manual dispatch: build, push to Google Artifact Registry,
+#   then deploy a new Cloud Run revision pinned to the commit SHA.
+#
+# Auth uses keyless Workload Identity Federation — no long-lived service-account
+# key. One-time GCP setup + the two repo variables it needs are documented in
+# word-golf/docs/CLOUD-RUN-DEPLOY.md.
+
+name: Deploy Word Golf
+
+on:
+  pull_request:
+    paths:
+      - "word-golf/**"
+      - ".github/workflows/deploy.yml"
+  push:
+    branches: [main]
+    paths:
+      - "word-golf/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+env:
+  GCP_PROJECT_ID: ajl-wordparautofactory
+  GCP_REGION: us-central1
+  AR_REPO: word-golf
+  IMAGE: web
+  SERVICE: word-golf
+
+jobs:
+  # PR validation: prove the image still builds, without touching GCP.
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: word-golf
+          file: word-golf/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # main / manual: build → push to Artifact Registry → deploy to Cloud Run.
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push to Artifact Registry
+        uses: docker/build-push-action@v6
+        with:
+          context: word-golf
+          file: word-golf/Dockerfile
+          push: true
+          tags: |
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE }}:latest
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE }}:${{ github.sha }}
+          # Public demo endpoint; container listens on $PORT (8080).
+          flags: --allow-unauthenticated --port=8080
+
+      - name: Output service URL
+        run: echo "Deployed → ${{ steps.deploy.outputs.url }}"
