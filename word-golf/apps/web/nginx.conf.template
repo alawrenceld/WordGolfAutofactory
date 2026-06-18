@@ -1,0 +1,24 @@
+# Static SPA server for Word Golf. ${PORT} is substituted at container start
+# (envsubst); nginx runtime variables like $uri are left untouched because they
+# are not environment variables.
+
+server {
+    listen       ${PORT};
+    listen       [::]:${PORT};
+    server_name  _;
+
+    root   /usr/share/nginx/html;
+    index  index.html;
+
+    # Long-cache the fingerprinted build assets.
+    location /assets/ {
+        expires    1y;
+        add_header Cache-Control "public, immutable";
+        try_files  $uri =404;
+    }
+
+    # SPA fallback: unknown routes resolve to index.html.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
