@@ -264,8 +264,12 @@ function firstStepToward(
         visited.add(w);
         parent.set(w, word);
         if (w === target) {
+          // Walk parent links back toward `from`; the node whose parent is
+          // `from` is the first step. Guard each lookup instead of asserting.
           let step = w;
-          while (parent.get(step) !== from) step = parent.get(step)!;
+          for (let prev = parent.get(step); prev && prev !== from; prev = parent.get(step)) {
+            step = prev;
+          }
           return step;
         }
         next.push(w);
@@ -288,7 +292,9 @@ function WordChip({
   return (
     <div className={`chip ${tone === "target" ? "chip-target" : ""}`}>
       <span className="chip-label">{label}</span>
-      <span className="chip-word">{word}</span>
+      <span className="chip-word" data-testid={`${label.toLowerCase()}-word`}>
+        {word}
+      </span>
     </div>
   );
 }
