@@ -7,12 +7,14 @@ import {
 } from "react";
 import {
   makeDailyPuzzle,
+  neighbors,
   scoreLabel,
   utcDateString,
   validateMove,
   WORD_LENGTH,
   type MoveRejection,
   type Puzzle,
+  type WordGraph,
 } from "@word-golf/engine";
 import { FLAG_KEYS, METRIC_EVENTS, useFlag, useTrack } from "@word-golf/ld";
 import { graph, startPool, targetPool } from "./words.js";
@@ -111,6 +113,16 @@ export function App() {
     setFeedback({ kind: "info", text: "Reverted to the previous word." });
   }
 
+  function hint() {
+    if (won) return;
+    const step = firstStepToward(current, puzzle.target, graph);
+    if (!step) {
+      setFeedback({ kind: "info", text: "No hint available from here." });
+      return;
+    }
+    setFeedback({ kind: "info", text: `Try a word like “${step}”.` });
+  }
+
   function reset() {
     setPath([puzzle.start]);
     setInput("");
@@ -192,6 +204,9 @@ export function App() {
           <button type="button" onClick={undo} disabled={path.length <= 1}>
             Undo
           </button>
+          <button type="button" onClick={hint}>
+            Hint
+          </button>
         </form>
       )}
 
@@ -214,6 +229,40 @@ export function App() {
       )}
     </main>
   );
+}
+
+/**
+ * First word along a shortest path from `from` to `target` (the move a player
+ * should make next), or null when the target is unreachable. Breadth-first so
+ * the suggested step always lies on an optimal route.
+ */
+function firstStepToward(
+  from: string,
+  target: string,
+  graph: WordGraph
+): string | null {
+  if (from === target) return null;
+  const parent = new Map<string, string>();
+  const visited = new Set<string>([from]);
+  let frontier: string[] = [from];
+  while (frontier.length > 0) {
+    const next: string[] = [];
+    for (const word of frontier) {
+      for (const w of neighbors(word, graph)) {
+        if (visited.has(w)) continue;
+        visited.add(w);
+        parent.set(w, word);
+        if (w === target) {
+          let step = w;
+          while (parent.get(step) !== from) step = parent.get(step)!;
+          return step;
+        }
+        next.push(w);
+      }
+    }
+    frontier = next;
+  }
+  return null;
 }
 
 function WordChip({
