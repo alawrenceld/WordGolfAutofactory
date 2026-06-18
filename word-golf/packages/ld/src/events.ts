@@ -8,12 +8,15 @@ export const METRIC_EVENTS = {
   madePar: "made_par",
   dailyReturned: "daily_returned",
   resultShared: "result_shared",
+  hintUsed: "hint_used",
+  hintUnavailable: "hint_unavailable",
   // Latency (numeric metrics; pass `value`)
   timeToSolveMs: "time_to_solve_ms",
   moveLatencyMs: "move_latency_ms",
   // Error
   invalidMove: "invalid_move",
   puzzleAbandoned: "puzzle_abandoned",
+  hintError: "hint_error",
 } as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[keyof typeof METRIC_EVENTS];

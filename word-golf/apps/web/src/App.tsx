@@ -116,12 +116,20 @@ export function App() {
 
   function hint() {
     if (won) return;
-    const step = firstStepToward(current, puzzle.target, graph);
-    if (!step) {
-      setFeedback({ kind: "info", text: "No hint available from here." });
-      return;
+    try {
+      const step = firstStepToward(current, puzzle.target, graph);
+      if (!step) {
+        setFeedback({ kind: "info", text: "No hint available from here." });
+        track(METRIC_EVENTS.hintUnavailable, { data: { current, target: puzzle.target } });
+        return;
+      }
+      setFeedback({ kind: "info", text: `Try a word like "${step}".` });
+      track(METRIC_EVENTS.hintUsed, { data: { current, target: puzzle.target, suggestion: step } });
+    } catch (error) {
+      // Never let hint errors break the game.
+      setFeedback({ kind: "error", text: "Hint unavailable right now." });
+      track(METRIC_EVENTS.hintError, { data: { error: String(error) } });
     }
-    setFeedback({ kind: "info", text: `Try a word like “${step}”.` });
   }
 
   function reset() {

@@ -1,0 +1,15 @@
+{
+  "prNumber": 1,
+  "flagKey": "hint-button",
+  "createdAt": "2025-01-03T00:00:00Z",
+  "phase": "guarded-release",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "hint-button-error-rate",
+      "hint-button-usage-rate",
+      "hint-button-completion-rate"
+    ]
+  },
+  "notes": "Hint button feature: allows players to get BFS-powered suggestions when stuck."
+}
