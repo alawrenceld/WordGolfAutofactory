@@ -105,3 +105,41 @@ Without this, the game still runs fully (offline defaults, no-op tracking).
   Control can demonstrate the loop in Simulated mode (a later phase).
 - `result_shared` and `daily_returned` depend on share/streak features that are
   deferred (see `FUTURE-WORK.md`).
+
+## Maintenance — keeping the factory in sync
+
+The factory lives in three layers that can drift apart:
+
+1. **Template (upstream)** — [`launchdarkly-labs/launchdarkly-auto-factory`](https://github.com/launchdarkly-labs/launchdarkly-auto-factory)
+   (Tom's repo): the canonical source.
+2. **Our fork** — [`alawrenceld/launchdarkly-auto-factory`](https://github.com/alawrenceld/launchdarkly-auto-factory):
+   what the GitHub Action actually runs (the workflow pins it `@main`).
+3. **Prod (live LD)** — the agent AI configs + `gha-auto-factory` graph
+   provisioned into the `word-golf-factory` project. This is what each PR run
+   reads at runtime.
+
+### Current deltas (fork vs template)
+
+- **`skip_flagging` no-op fix** — a skipped-flagging PR (infra/docs) was falsely
+  reported as "code review REJECTED". Fixed in our fork and submitted upstream as
+  [launchdarkly-labs PR #10](https://github.com/launchdarkly-labs/launchdarkly-auto-factory/pull/10).
+- **`max_turns` 20 → 40** on the `metrics-author` and `flag-testing` edges
+  (`config/agentcontrol/graphs/auto-factory.json`) — local tuning so those agents
+  stop hitting the turn cap mid-task. Lives in our fork; **not** yet upstreamed.
+
+### TODO — reconcile once upstream PR #10 is reviewed/merged
+
+- [ ] **Sync fork → upstream.** When [PR #10](https://github.com/launchdarkly-labs/launchdarkly-auto-factory/pull/10)
+      is reviewed/merged, sync `alawrenceld/launchdarkly-auto-factory` `main` to
+      `upstream/main`. Note our fork currently carries the same fix at the *old*
+      file location (`phase1-resource-factory/src/approval.ts`), so expect to
+      drop that duplicate in favor of upstream's `packages/shared/` version.
+- [ ] **Re-provision the template → prod.** Re-run `npm run bootstrap` from the
+      synced fork to push the updated agent configs + graph into the
+      `word-golf-factory` project.
+- [ ] **Diff template vs prod and reconcile.** Compare what `bootstrap` would
+      write against what's live in `word-golf-factory` (including our `max_turns
+      40` tuning). Keep our intentional deltas, adopt upstream improvements, and
+      drop anything now redundant.
+- [ ] **Decide on `max_turns`.** Either upstream the 20 → 40 change too, or keep
+      it as a documented local override.
