@@ -4,6 +4,10 @@ A tiny, replayable word puzzle that doubles as a live showcase of the **[LaunchD
 
 Turn a starting word into a target word, one letter at a time. Every step must be a real word; anything else reverts to the last good word -- the rollback metaphor at the heart of the showcase.
 
+<p align="center">
+  <img src="docs/word-golf-daily.png" alt="Word Golf daily puzzle: CHIME to CHATS solved in 4 moves (par 4)" width="420">
+</p>
+
 > **Powered by the [LaunchDarkly AutoFactory](https://github.com/alawrenceld/launchdarkly-auto-factory).**
 > The AutoFactory is the autonomous release pipeline this game showcases: a chain of AI agents flags a PR, instruments guarded-release metrics, writes tests, and runs releases that auto-roll-back on regression. Word Golf is the demo payload it operates on. Eventually the factory components will be merged into this repo so Word Golf works as a self-contained AutoFactory; until then, the upstream repo is the setup reference for the pipeline.
 
