@@ -7,12 +7,14 @@ import {
 } from "react";
 import {
   makeDailyPuzzle,
+  neighbors,
   scoreLabel,
   utcDateString,
   validateMove,
   WORD_LENGTH,
   type MoveRejection,
   type Puzzle,
+  type WordGraph,
 } from "@word-golf/engine";
 import { FLAG_KEYS, METRIC_EVENTS, useFlag, useTrack } from "@word-golf/ld";
 import { graph, startPool, targetPool } from "./words.js";
@@ -33,6 +35,7 @@ export function App() {
   const today = utcDateString();
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+  const hintButtonEnabled = useFlag(FLAG_KEYS.hintButton);
 
   const puzzle = useMemo<Puzzle>(
     () =>
@@ -109,6 +112,24 @@ export function App() {
     if (path.length <= 1) return;
     setPath(path.slice(0, -1));
     setFeedback({ kind: "info", text: "Reverted to the previous word." });
+  }
+
+  function hint() {
+    if (won) return;
+    try {
+      const step = firstStepToward(current, puzzle.target, graph);
+      if (!step) {
+        setFeedback({ kind: "info", text: "No hint available from here." });
+        track(METRIC_EVENTS.hintUnavailable, { data: { current, target: puzzle.target } });
+        return;
+      }
+      setFeedback({ kind: "info", text: `Try a word like "${step}".` });
+      track(METRIC_EVENTS.hintUsed, { data: { current, target: puzzle.target, suggestion: step } });
+    } catch (error) {
+      // Never let hint errors break the game.
+      setFeedback({ kind: "error", text: "Hint unavailable right now." });
+      track(METRIC_EVENTS.hintError, { data: { error: String(error) } });
+    }
   }
 
   function reset() {
@@ -192,6 +213,11 @@ export function App() {
           <button type="button" onClick={undo} disabled={path.length <= 1}>
             Undo
           </button>
+          {hintButtonEnabled && (
+            <button type="button" onClick={hint}>
+              Hint
+            </button>
+          )}
         </form>
       )}
 
@@ -216,6 +242,44 @@ export function App() {
   );
 }
 
+/**
+ * First word along a shortest path from `from` to `target` (the move a player
+ * should make next), or null when the target is unreachable. Breadth-first so
+ * the suggested step always lies on an optimal route.
+ */
+function firstStepToward(
+  from: string,
+  target: string,
+  graph: WordGraph
+): string | null {
+  if (from === target) return null;
+  const parent = new Map<string, string>();
+  const visited = new Set<string>([from]);
+  let frontier: string[] = [from];
+  while (frontier.length > 0) {
+    const next: string[] = [];
+    for (const word of frontier) {
+      for (const w of neighbors(word, graph)) {
+        if (visited.has(w)) continue;
+        visited.add(w);
+        parent.set(w, word);
+        if (w === target) {
+          // Walk parent links back toward `from`; the node whose parent is
+          // `from` is the first step. Guard each lookup instead of asserting.
+          let step = w;
+          for (let prev = parent.get(step); prev && prev !== from; prev = parent.get(step)) {
+            step = prev;
+          }
+          return step;
+        }
+        next.push(w);
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+
 function WordChip({
   label,
   word,
@@ -228,7 +292,9 @@ function WordChip({
   return (
     <div className={`chip ${tone === "target" ? "chip-target" : ""}`}>
       <span className="chip-label">{label}</span>
-      <span className="chip-word">{word}</span>
+      <span className="chip-word" data-testid={`${label.toLowerCase()}-word`}>
+        {word}
+      </span>
     </div>
   );
 }
