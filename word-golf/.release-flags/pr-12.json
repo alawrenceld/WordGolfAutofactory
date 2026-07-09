@@ -1,0 +1,44 @@
+{
+  "pr": 12,
+  "branch": "feat/random-puzzle",
+  "flag_key": "enable-random-puzzle",
+  "flag_kind": "boolean",
+  "created_by": "auto-factory/metrics-author",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "enable-random-puzzle-error-rate",
+      "enable-random-puzzle-latency",
+      "enable-random-puzzle-completion-rate"
+    ]
+  },
+  "metrics": [
+    {
+      "key": "enable-random-puzzle-error-rate",
+      "category": "error",
+      "event_key": "puzzle_abandoned",
+      "role": "killswitch",
+      "source": "reused_event",
+      "randomization_unit": "user",
+      "notes": "Abandonment spike → flip flag off immediately."
+    },
+    {
+      "key": "enable-random-puzzle-latency",
+      "category": "latency",
+      "event_key": "time_to_solve_ms",
+      "role": "pause",
+      "source": "reused_event",
+      "randomization_unit": "user",
+      "notes": "Solve-time regression → pause rollout for human review."
+    },
+    {
+      "key": "enable-random-puzzle-completion-rate",
+      "category": "business",
+      "event_key": "puzzle_completed",
+      "role": "monitoring",
+      "source": "reused_event",
+      "randomization_unit": "user",
+      "notes": "Hypothesis metric: practice mode should raise completion rate. Observe; do not gate automatically."
+    }
+  ]
+}
