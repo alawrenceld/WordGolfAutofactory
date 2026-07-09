@@ -34,8 +34,14 @@ merge to main ─▶ deploy-aws.yml ─▶ build image (linux/amd64)
 | ECR access role | `AppRunnerECRAccessRole` (App Runner pulls the image) |
 | CI deploy role | `wordgolf-github-deployer` (assumed via OIDC) |
 
-The workflow reads four **repository variables**: `AWS_DEPLOY_ROLE_ARN`,
-`AWS_REGION`, `ECR_REPO`, `AWS_APPRUNNER_SERVICE_ARN`.
+The workflow reads five **repository variables**: `AWS_DEPLOY_ROLE_ARN`,
+`AWS_REGION`, `ECR_REPO`, `AWS_APPRUNNER_SERVICE_ARN`, and `VITE_LD_CLIENT_ID`.
+
+`VITE_LD_CLIENT_ID` is the app project's **client-side ID** (a public,
+browser-embedded identifier — not a secret). It's passed as a Docker `build-arg`
+so Vite inlines it into the bundle at build time. **Without it the app deploys
+and runs, but stays offline** — safe flag defaults, no flag evaluations, and no
+events reach LaunchDarkly (so guarded rollouts/experiments see no traffic).
 
 ## One-time setup (already applied to account 955116512041)
 
@@ -79,6 +85,7 @@ gh variable set AWS_DEPLOY_ROLE_ARN --body "arn:aws:iam::955116512041:role/wordg
 gh variable set AWS_REGION --body "us-east-2"
 gh variable set ECR_REPO --body "word-golf"
 gh variable set AWS_APPRUNNER_SERVICE_ARN --body "arn:aws:apprunner:us-east-2:955116512041:service/word-golf/436622e3ad2943e4b9ae9dc527a31ecd"
+gh variable set VITE_LD_CLIENT_ID --body "6a34058a01e6a30ad3b27f58" # app project prod client-side ID (public)
 ```
 
 CI deploy role trust (who can assume it) and permissions (what it can do):
