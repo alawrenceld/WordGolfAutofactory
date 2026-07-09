@@ -15,11 +15,15 @@ on:
   pull_request:
     paths:
       - "word-golf/**"
+      - "!word-golf/**/*.md" # docs-only changes don't need a build
+      - "!word-golf/docs/**"
       - ".github/workflows/deploy-aws.yml"
   push:
     branches: [main]
     paths:
       - "word-golf/**"
+      - "!word-golf/**/*.md"
+      - "!word-golf/docs/**"
       - ".github/workflows/deploy-aws.yml"
   workflow_dispatch:
 

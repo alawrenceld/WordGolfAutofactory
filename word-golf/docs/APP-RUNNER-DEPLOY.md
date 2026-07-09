@@ -17,8 +17,10 @@ merge to main ─▶ deploy-aws.yml ─▶ build image (linux/amd64)
 
 ## Live service
 
-- **URL:** https://zbmvvkctmp.us-east-2.awsapprunner.com
-- App Runner auto-provisions TLS + a stable subdomain; the URL is stable across deploys.
+- **URL:** https://wordgolffactory.launchdarklydemos.com (custom domain)
+- **Default URL:** https://zbmvvkctmp.us-east-2.awsapprunner.com (also works)
+- App Runner auto-provisions TLS on both; the URLs are stable across deploys.
+- See [Custom domain](#custom-domain) for how the friendly name is wired up.
 
 ## Fixed settings
 
@@ -86,6 +88,40 @@ CI deploy role trust (who can assume it) and permissions (what it can do):
 - **Permissions:** `ecr:GetAuthorizationToken` (all), ECR push/pull on the
   `word-golf` repo, and `apprunner:StartDeployment|DescribeService|ListOperations`
   on the service ARN.
+
+## Custom domain
+
+The friendly URL is **https://wordgolffactory.launchdarklydemos.com**, wired to the
+service via App Runner's custom-domain feature. App Runner requests + renews an ACM
+cert automatically; we only add DNS records to the existing Route 53 public zone
+`launchdarklydemos.com` (`Z04794713N147BEH1NVCF`, same account).
+
+The binding is on the *service*, not the image, so it survives every deploy.
+
+```bash
+export AWS_PROFILE=admin-955116512041 AWS_REGION=us-east-2 AWS_DEFAULT_REGION=us-east-2
+SVC=arn:aws:apprunner:us-east-2:955116512041:service/word-golf/436622e3ad2943e4b9ae9dc527a31ecd
+DOMAIN=wordgolffactory.launchdarklydemos.com
+
+# 1. Associate the domain — App Runner returns cert-validation records.
+aws apprunner associate-custom-domain --service-arn "$SVC" --domain-name "$DOMAIN" --no-enable-www-subdomain
+
+# 2. Read the validation records (poll until CertificateValidationRecords is populated).
+aws apprunner describe-custom-domains --service-arn "$SVC" \
+  --query "CustomDomains[?DomainName=='$DOMAIN'] | [0].{status:Status,records:CertificateValidationRecords}"
+
+# 3. In Route 53 zone Z04794713N147BEH1NVCF, UPSERT (all CNAME, TTL 300):
+#    - $DOMAIN                       -> zbmvvkctmp.us-east-2.awsapprunner.com   (the app)
+#    - the 2 ACM validation records  -> *.acm-validations.aws.                  (cert proof)
+#    (aws route53 change-resource-record-sets --hosted-zone-id Z04794713N147BEH1NVCF --change-batch file://records.json)
+
+# 4. Domain flips creating -> pending_certificate_dns_validation -> binding_certificate -> active (~1 min).
+aws apprunner describe-custom-domains --service-arn "$SVC" \
+  --query "CustomDomains[?DomainName=='$DOMAIN'] | [0].Status" --output text
+```
+
+> The edge can serve intermittent TLS failures for a couple of minutes right after
+> the domain goes `active` while the cert propagates — it settles on its own.
 
 ## Deploying
 
