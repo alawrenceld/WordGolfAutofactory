@@ -1,0 +1,25 @@
+{
+  "pr": 17,
+  "branch": "feat/ld-observability-plugin",
+  "flag_key": "enable-observability-plugin",
+  "flag_kind": "boolean",
+  "created_by": "auto-factory/flag-implementer",
+  "description": "Gates the @launchdarkly/observability plugin (errors, web vitals, traces) injected into LDProvider. Control path (flag off) omits the plugin entirely, preserving existing behavior.",
+  "control_path": "enableObservability=false → plugins=[] → LDProvider initialized without observability plugin",
+  "treatment_path": "enableObservability=true → plugins=[new Observability()] → LDProvider initialized with observability plugin",
+  "env_var": "VITE_LD_OBSERVABILITY",
+  "files_modified": [
+    "packages/ld/src/provider.tsx",
+    "packages/ld/src/flags.ts",
+    "apps/web/src/main.tsx",
+    ".env.example"
+  ],
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "enable-observability-plugin-error",
+      "enable-observability-plugin-latency",
+      "enable-observability-plugin-activated"
+    ]
+  }
+}
