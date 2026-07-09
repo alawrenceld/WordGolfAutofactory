@@ -35,6 +35,6 @@ export const FLAG_DEFAULTS: Flags = {
   "par-algorithm": "shortest",
   "word-pool-difficulty": "medium",
   "daily-theme": "",
-  "show-mission-control": true,
+  "show-mission-control": false,
   "enable-random-puzzle": false,
 };
