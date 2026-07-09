@@ -151,5 +151,17 @@ aws apprunner describe-service \
 - **Auto-deploy is off:** the workflow triggers deployments explicitly so CI can
   wait on and report the result. Flip `AutoDeploymentsEnabled` to `true` on the
   service if you'd rather App Runner redeploy on any ECR push.
+- **Merge → deploy uses a self-dispatch hop (not `on: push`):** the AutoFactory
+  commits flag wiring/metrics to the PR branch as `github-actions[bot]`, and GitHub
+  will not spawn a `push`-triggered run for a merge whose commits came from
+  `GITHUB_TOKEN` — so a plain `on: push` to main silently skips factory-processed
+  merges. Instead, a `redeploy-on-merge` job (on `pull_request` `closed` +
+  `merged == true`) re-invokes the workflow via `workflow_dispatch` on `main`. That
+  keeps the deploy running in the **main-branch OIDC context** (subject
+  `…:ref:refs/heads/main`), so the IAM trust policy stays pinned to `main` and needs
+  no widening, and it introduces **no long-lived credentials** — the dispatch uses the
+  ephemeral `GITHUB_TOKEN` (`workflow_dispatch` is the documented exception that still
+  fires when invoked by it). First rollout of this change needs one manual dispatch,
+  since the merge that adds it is still governed by the old workflow on `main`.
 - **Cost:** provisioned at 0.25 vCPU / 0.5 GB (App Runner minimum) — plenty for a
   static nginx site.

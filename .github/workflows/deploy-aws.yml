@@ -1,9 +1,19 @@
 # Build the Word Golf web app image and deploy it to AWS App Runner.
 #
-# - Pull requests: build only (validate the Dockerfile). No push, no deploy.
-# - Pushes to main / manual dispatch: build (linux/amd64), push to Amazon ECR,
-#   then trigger an App Runner deployment pinned to the freshly pushed image and
-#   wait for it to succeed.
+# - Pull requests (open/update): build only (validate the Dockerfile). No push, no deploy.
+# - PR merged into main: a tiny `redeploy-on-merge` job re-invokes this workflow via
+#   workflow_dispatch on `main`, and the `deploy` job then builds (linux/amd64), pushes
+#   to Amazon ECR, and rolls App Runner to the fresh image.
+# - Manual `workflow_dispatch`: same deploy path.
+#
+# Why the merge → self-dispatch hop (instead of `on: push` to main): the AutoFactory
+# commits flag wiring/metrics to the PR branch as github-actions[bot]. GitHub does not
+# spawn `push`-triggered runs for merges whose commits came from GITHUB_TOKEN, so a plain
+# `on: push` silently skips those merges. Re-dispatching runs the deploy in the
+# main-branch context, so the GitHub OIDC subject stays `…:ref:refs/heads/main` and the
+# AWS IAM trust policy needs no widening. No long-lived credentials (PATs) are involved:
+# the dispatch uses the ephemeral GITHUB_TOKEN, and workflow_dispatch is the documented
+# exception that still fires when invoked by GITHUB_TOKEN.
 #
 # Auth is keyless via GitHub OIDC → an IAM role (no stored AWS keys). The role,
 # ECR repo, region, and service ARN come from repo variables; one-time AWS setup
@@ -13,16 +23,10 @@ name: Deploy Word Golf (AWS App Runner)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     paths:
       - "word-golf/**"
       - "!word-golf/**/*.md" # docs-only changes don't need a build
-      - "!word-golf/docs/**"
-      - ".github/workflows/deploy-aws.yml"
-  push:
-    branches: [main]
-    paths:
-      - "word-golf/**"
-      - "!word-golf/**/*.md"
       - "!word-golf/docs/**"
       - ".github/workflows/deploy-aws.yml"
   workflow_dispatch:
@@ -30,7 +34,7 @@ on:
 jobs:
   # PR validation: prove the image still builds, without touching AWS.
   validate:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,9 +50,22 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # main / manual: build → push to ECR → deploy to App Runner.
+  # On merge into main: re-invoke this workflow on `main` so the deploy runs in the
+  # main-branch OIDC context (keeps the IAM trust pinned to main; no PAT needed).
+  redeploy-on-merge:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # dispatch this workflow via the ephemeral GITHUB_TOKEN
+    steps:
+      - name: Dispatch deploy on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy-aws.yml --ref main -R "${{ github.repository }}"
+
+  # Manual / merge-dispatched: build → push to ECR → deploy to App Runner.
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
