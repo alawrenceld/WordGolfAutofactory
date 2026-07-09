@@ -44,6 +44,15 @@
       "defaultVariation": 1,
       "hypothesis": "Operational kill switch for the showcase panel.",
       "watchedMetric": null
+    },
+    {
+      "key": "enable-random-puzzle",
+      "name": "Enable Random Puzzle (Practice Mode)",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "Practice mode raises engagement and return rate without harming daily completion.",
+      "watchedMetric": "puzzle_completed"
     }
   ]
 }

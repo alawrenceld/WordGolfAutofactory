@@ -14,6 +14,7 @@ export { validateMove, letterDiff } from "./move.js";
 export { relativeToPar, scoreLabel } from "./score.js";
 export {
   makeDailyPuzzle,
+  makeRandomPuzzle,
   utcDateString,
   type DailyOptions,
 } from "./daily.js";

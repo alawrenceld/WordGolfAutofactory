@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeDailyPuzzle } from "../src/daily.js";
+import { makeDailyPuzzle, makeRandomPuzzle } from "../src/daily.js";
 import { bfsPar } from "../src/par.js";
 import { loadList, realGraph } from "./helpers.js";
 
@@ -81,6 +81,35 @@ test("targetPool constrains the target to common words", () => {
     assert.notEqual(puzzle.start, puzzle.target);
     assert.ok(typeof puzzle.par === "number" && puzzle.par >= 1);
   }
+});
+
+test("random puzzle with an explicit seed matches the daily generator", () => {
+  const seed = "practice-abc123";
+  const random = makeRandomPuzzle({ seed, startPool: answers, graph, steps: 6, targetPool: common });
+  const daily = makeDailyPuzzle({ dateUtc: seed, startPool: answers, graph, steps: 6, targetPool: common });
+  assert.deepEqual(random, daily);
+});
+
+test("random puzzles are solvable and respect the target pool", () => {
+  const commonSet = new Set(common);
+  for (let i = 0; i < 40; i++) {
+    const puzzle = makeRandomPuzzle({
+      seed: `practice-seed-${i}`,
+      startPool: answers,
+      graph,
+      steps: 6,
+      targetPool: common,
+    });
+    assert.notEqual(puzzle.start, puzzle.target, `start==target on seed ${i}`);
+    assert.ok(commonSet.has(puzzle.target), `target "${puzzle.target}" not in common pool on seed ${i}`);
+    assert.ok(typeof puzzle.par === "number" && puzzle.par >= 1, `unsolvable on seed ${i}`);
+  }
+});
+
+test("different random seeds generally yield different puzzles", () => {
+  const a = makeRandomPuzzle({ seed: "practice-A", startPool: answers, graph, steps: 6 });
+  const b = makeRandomPuzzle({ seed: "practice-B", startPool: answers, graph, steps: 6 });
+  assert.notDeepEqual(a, b);
 });
 
 test("stress: BFS resolves par for difficult-word pairs without hanging", () => {

@@ -213,6 +213,27 @@ button:disabled {
   margin: 0 0 12px;
 }
 
+.puzzle-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.puzzle-actions .link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.puzzle-actions .link:hover {
+  color: var(--text);
+}
+
 .mission-control-stub {
   margin: 24px 0 0;
   padding: 12px 14px;

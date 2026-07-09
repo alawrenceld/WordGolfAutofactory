@@ -1,12 +1,12 @@
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
   type FormEvent,
 } from "react";
 import {
   makeDailyPuzzle,
+  makeRandomPuzzle,
   scoreLabel,
   utcDateString,
   validateMove,
@@ -33,12 +33,16 @@ export function App() {
   const today = utcDateString();
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+  const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
 
-  const puzzle = useMemo<Puzzle>(
-    () =>
-      makeDailyPuzzle({ dateUtc: today, startPool, graph, steps: 6, targetPool }),
-    [today]
+  // The active puzzle is stateful so players can switch between the shared
+  // daily and one-off random "practice" puzzles.
+  // When the flag is off this always stays on the daily puzzle (control path).
+  const [puzzle, setPuzzle] = useState<Puzzle>(() =>
+    makeDailyPuzzle({ dateUtc: today, startPool, graph, steps: 6, targetPool })
   );
+  // isDaily is only meaningful when enableRandomPuzzle is on; defaults true.
+  const [isDaily, setIsDaily] = useState(true);
 
   const [path, setPath] = useState<string[]>([puzzle.start]);
   const [input, setInput] = useState("");
@@ -120,6 +124,32 @@ export function App() {
     completedRef.current = false;
   }
 
+  // Swap in a fresh puzzle and reset all per-puzzle state (board + metric guards).
+  function startPuzzle(next: Puzzle, daily: boolean) {
+    setPuzzle(next);
+    setIsDaily(daily);
+    setPath([next.start]);
+    setInput("");
+    setFeedback(null);
+    startTimeRef.current = Date.now();
+    lastMoveRef.current = Date.now();
+    completedRef.current = false;
+  }
+
+  function newRandomPuzzle() {
+    startPuzzle(
+      makeRandomPuzzle({ startPool, graph, steps: 6, targetPool }),
+      false
+    );
+  }
+
+  function backToDaily() {
+    startPuzzle(
+      makeDailyPuzzle({ dateUtc: today, startPool, graph, steps: 6, targetPool }),
+      true
+    );
+  }
+
   return (
     <main className="app">
       <header className="header">
@@ -142,8 +172,24 @@ export function App() {
       <section className="scoreboard">
         <Stat label="Moves" value={String(moves)} />
         <Stat label="Par" value={puzzle.par === null ? "—" : String(puzzle.par)} />
-        <Stat label="Daily" value={today} />
+        <Stat
+          label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
+          value={enableRandomPuzzle && !isDaily ? "Random" : today}
+        />
       </section>
+
+      {enableRandomPuzzle && (
+        <section className="puzzle-actions">
+          <button type="button" onClick={newRandomPuzzle}>
+            Random puzzle
+          </button>
+          {!isDaily && (
+            <button type="button" className="link" onClick={backToDaily}>
+              Back to today's daily
+            </button>
+          )}
+        </section>
+      )}
 
       <ol className="track" aria-label="Move history">
         {path.map((word, i) => (
