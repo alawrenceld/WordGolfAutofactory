@@ -56,7 +56,8 @@ Two LaunchDarkly projects are used:
 | App project **client-side ID** | `word-golf/.env` -> `VITE_LD_CLIENT_ID` | browser SDK |
 | Factory project **server SDK key** (`sdk-...`) | GitHub secret `LD_SDK_KEY` | reads agents + graph |
 | LD **API token** (`api-...`, write to app project) | GitHub secret `LD_API_KEY` | creates flags/metrics |
-| **Anthropic API key** | GitHub secret `ANTHROPIC_API_KEY` | agent backend |
+| **Anthropic API key** | GitHub secret `ANTHROPIC_API_KEY` | agent backend (default provider) |
+| **Cursor API key** (`crsr-...`) | GitHub secret `CURSOR_API_KEY` | agent backend when `auto-factory-ai-provider` serves `cursor` |
 | App project **key** | GitHub variable `LD_APP_PROJECT_KEY` | e.g. `word-golf` |
 
 `GITHUB_TOKEN` is provided automatically by GitHub Actions.
@@ -118,28 +119,41 @@ The factory lives in three layers that can drift apart:
    provisioned into the `word-golf-factory` project. This is what each PR run
    reads at runtime.
 
-### Current deltas (fork vs template)
+### Synced to upstream — 2026-07-09
 
-- **`skip_flagging` no-op fix** — a skipped-flagging PR (infra/docs) was falsely
-  reported as "code review REJECTED". Fixed in our fork and submitted upstream as
-  [launchdarkly-labs PR #10](https://github.com/launchdarkly-labs/launchdarkly-auto-factory/pull/10).
-- **`max_turns` 20 → 40** on the `metrics-author` and `flag-testing` edges
-  (`config/agentcontrol/graphs/auto-factory.json`) — local tuning so those agents
-  stop hitting the turn cap mid-task. Lives in our fork; **not** yet upstreamed.
+Our fork `main` was hard-reset to `upstream/main` (`2d33e8d`, ADR 0008 approval
+gates) and force-pushed, adopting ~58 upstream commits: the Cursor SDK provider
+(ADR 0006), LLM-as-judge quality layer (ADR 0007), approval-policy-as-gates
+(ADR 0008), LLM observability, and the routing-contract/robustness fixes.
 
-### TODO — reconcile once upstream PR #10 is reviewed/merged
+- **`skip_flagging` no-op fix** — our original fix was **merged upstream**
+  ([launchdarkly-labs PR #10](https://github.com/launchdarkly-labs/launchdarkly-auto-factory/pull/10))
+  and refactored into `packages/shared/`, so the fork no longer carries a
+  duplicate.
+- **`max_turns` 40** on the `metrics-author→flag-testing` and
+  `flag-implementer→metrics-author` edges — the **only** remaining local delta
+  vs upstream, re-applied on top of the sync (`config/agentcontrol/graphs/auto-factory.json`).
 
-- [ ] **Sync fork → upstream.** When [PR #10](https://github.com/launchdarkly-labs/launchdarkly-auto-factory/pull/10)
-      is reviewed/merged, sync `alawrenceld/launchdarkly-auto-factory` `main` to
-      `upstream/main`. Note our fork currently carries the same fix at the *old*
-      file location (`phase1-resource-factory/src/approval.ts`), so expect to
-      drop that duplicate in favor of upstream's `packages/shared/` version.
-- [ ] **Re-provision the template → prod.** Re-run `npm run bootstrap` from the
-      synced fork to push the updated agent configs + graph into the
-      `word-golf-factory` project.
-- [ ] **Diff template vs prod and reconcile.** Compare what `bootstrap` would
-      write against what's live in `word-golf-factory` (including our `max_turns
-      40` tuning). Keep our intentional deltas, adopt upstream improvements, and
-      drop anything now redundant.
-- [ ] **Decide on `max_turns`.** Either upstream the 20 → 40 change too, or keep
-      it as a documented local override.
+The `word-golf-factory` project was wiped (5 agent configs + graph) and
+re-provisioned clean via `npm run bootstrap`, because the provisioner is
+additive and won't upgrade existing configs in place. It now holds 7 AI configs
+(5 agents + 2 judges), the `gha-auto-factory` graph, and the 4 operational
+flags below (all **off** → safe defaults, so behavior is unchanged until flipped):
+
+| Flag | Off / default | Turn on to… |
+|------|---------------|-------------|
+| `auto-factory-ai-provider` | `anthropic` | A/B Anthropic vs `cursor` agents |
+| `auto-factory-approval-mode` | `yolo` | `risk-threshold` / `always` gating |
+| `auto-factory-risk-threshold` | `0.6` | tune gate sensitivity (0–1) |
+| `auto-factory-approval-gates` | (which steps) | pick gated nodes |
+
+The app-repo workflow now uses the checkout + `npm ci` form so it can run either
+provider based on the flag (the bare `uses:` form can't load `@cursor/sdk`).
+
+### Remaining follow-ups
+
+- [ ] **Flip on gating** — set `auto-factory-approval-mode` → `risk-threshold`
+      when we want the factory to pause risky PRs for label approval.
+- [ ] **Provider A/B** — serve `cursor` (or a percentage rollout) from
+      `auto-factory-ai-provider` to compare Anthropic vs Cursor agents.
+- [ ] **Decide on `max_turns`** — keep the 40 override (current) or upstream it.

@@ -1,12 +1,21 @@
 # LaunchDarkly Auto-Factory — Phase 1
 #
-# Runs on every PR to this repo. A chain of LaunchDarkly AI-config agents
-# classifies the PR and, when it is flag-worthy, creates a feature flag
-# (targeting off) in the app project, wires it into the code, instruments
-# guarded-release metrics, writes flag-on/flag-off tests, and posts a verdict.
+# On every PR, a chain of LaunchDarkly AI-config agents classifies the PR and,
+# when it's flag-worthy, creates a feature flag (targeting off) in the app
+# project, wires it into the code, instruments guarded-release metrics, writes
+# flag-on/off tests, and posts a verdict. Judges score the coding agents; the
+# approval policy (auto-factory-approval-* flags) can gate risky steps.
+#
+# Why the checkout + `npm ci` form (not a bare `uses:`): the execution provider
+# is chosen at runtime by the auto-factory-ai-provider flag. The Cursor backend
+# lazy-loads @cursor/sdk, which needs node_modules — a bare `uses:` action ships
+# none — so we check the tool out, `npm ci` it, and run the bundle directly. The
+# tool lives in tool/, OUTSIDE the analyzed code in app/, so the agents' git ops
+# never sweep it into the PR. Both provider keys are supplied so the flag can
+# serve anthropic (default) or cursor without a workflow change.
 #
 # Setup (see word-golf/.env.example):
-#   Secrets:   LD_SDK_KEY, LD_API_KEY, ANTHROPIC_API_KEY
+#   Secrets:   LD_SDK_KEY, LD_API_KEY, ANTHROPIC_API_KEY, CURSOR_API_KEY
 #   Variable:  LD_APP_PROJECT_KEY  (e.g. word-golf)
 # GITHUB_TOKEN is provided automatically by GitHub Actions.
 
@@ -14,35 +23,59 @@ name: LaunchDarkly Auto-Factory
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled] # labeled: resume a gated run via the approval label
 
 permissions:
   contents: write # agents commit flag wiring, metrics, and tests to the PR branch
   pull-requests: write # post the summary comment
+  checks: write # post the approval-gate status as a check run
 
 jobs:
   auto-factory:
     runs-on: ubuntu-latest
+    # CI-loop guard (secondary). Primary guard is in the action: agent commits
+    # carry [skip ci], so the agents' pushes never create a workflow run.
+    if: github.actor != 'github-actions[bot]'
     steps:
-      - uses: actions/checkout@v4
+      # The code under analysis = the PR's head branch (so agent commits push back cleanly).
+      - name: Check out the PR code
+        uses: actions/checkout@v4
         with:
-          # Check out the PR's head branch so agents can commit and push back.
+          path: app
           ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
+          fetch-depth: 0 # full history so git_diff can do base...HEAD
 
-      - name: LaunchDarkly Auto-Factory Phase 1
-        uses: alawrenceld/launchdarkly-auto-factory/packages/phase1-resource-factory@main
+      - name: Check out the AutoFactory tool
+        uses: actions/checkout@v4
         with:
-          ld_sdk_key: ${{ secrets.LD_SDK_KEY }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          ld_app_project_key: ${{ vars.LD_APP_PROJECT_KEY }}
-          ld_api_key: ${{ secrets.LD_API_KEY }}
+          repository: alawrenceld/launchdarkly-auto-factory
+          ref: main
+          path: tool
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # @cursor/sdk requires Node >=22.13
+
+      - name: Install tool dependencies (provides @cursor/sdk)
+        run: npm ci
+        working-directory: tool
+
+      - name: Run AutoFactory Phase 1
+        working-directory: app # cwd = your code; agent git ops happen here
+        run: node "$GITHUB_WORKSPACE/tool/packages/phase1-resource-factory/dist/action.bundle.js"
+        env:
+          LD_SDK_KEY: ${{ secrets.LD_SDK_KEY }}
+          LD_API_KEY: ${{ secrets.LD_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          LD_APP_PROJECT_KEY: ${{ vars.LD_APP_PROJECT_KEY }}
+          GRAPH_KEY: gha-auto-factory
+          ENABLE_FLAG_CREATION: "true" # create real flags/metrics in the app project
+          ENABLE_CODE_CHANGES: "true" # commit wiring + tests to the PR branch
           # The Word Golf app lives in the word-golf/ subdirectory.
-          sandbox_root: word-golf
-          enable_flag_creation: "true" # create real flags/metrics in the app project
-          enable_code_changes: "true" # commit wiring + tests to the PR branch
-          pr_branch: ${{ github.event.pull_request.head.ref }}
-          pr_base: ${{ github.event.pull_request.base.ref }}
-          graph_key: gha-auto-factory
-          approval_mode: yolo
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          SANDBOX_ROOT: word-golf
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          # Approvals are controlled by the auto-factory-approval-* flags in the
+          # factory project (no APPROVAL_MODE override here — the flags decide).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
