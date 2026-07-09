@@ -25,8 +25,9 @@ RUN npm run build --workspace apps/web
 # ---- Stage 2: serve with nginx ----
 FROM nginx:1.27-alpine AS runtime
 
-# Cloud Run injects PORT (default 8080); the nginx:alpine entrypoint runs
+# The app listens on $PORT (default 8080); the nginx:alpine entrypoint runs
 # envsubst over /etc/nginx/templates/*.template at startup, substituting ${PORT}.
+# Works on any "run my container" host (AWS App Runner, Cloud Run, etc.).
 ENV PORT=8080
 
 COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template

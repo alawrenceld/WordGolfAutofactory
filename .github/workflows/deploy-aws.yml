@@ -1,0 +1,107 @@
+# Build the Word Golf web app image and deploy it to AWS App Runner.
+#
+# - Pull requests: build only (validate the Dockerfile). No push, no deploy.
+# - Pushes to main / manual dispatch: build (linux/amd64), push to Amazon ECR,
+#   then trigger an App Runner deployment pinned to the freshly pushed image and
+#   wait for it to succeed.
+#
+# Auth is keyless via GitHub OIDC → an IAM role (no stored AWS keys). The role,
+# ECR repo, region, and service ARN come from repo variables; one-time AWS setup
+# is documented in word-golf/docs/APP-RUNNER-DEPLOY.md.
+
+name: Deploy Word Golf (AWS App Runner)
+
+on:
+  pull_request:
+    paths:
+      - "word-golf/**"
+      - ".github/workflows/deploy-aws.yml"
+  push:
+    branches: [main]
+    paths:
+      - "word-golf/**"
+      - ".github/workflows/deploy-aws.yml"
+  workflow_dispatch:
+
+jobs:
+  # PR validation: prove the image still builds, without touching AWS.
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: word-golf
+          file: word-golf/Dockerfile
+          platforms: linux/amd64
+          push: false
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # main / manual: build → push to ECR → deploy to App Runner.
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for GitHub OIDC → AWS
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: word-golf
+          file: word-golf/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPO }}:latest
+            ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPO }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to App Runner and wait
+        env:
+          SERVICE_ARN: ${{ vars.AWS_APPRUNNER_SERVICE_ARN }}
+        run: |
+          set -euo pipefail
+          OP=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" --query OperationId --output text)
+          echo "Started App Runner deployment: $OP"
+          for i in $(seq 1 40); do
+            ST=$(aws apprunner list-operations --service-arn "$SERVICE_ARN" \
+                  --query "OperationSummaryList[?Id=='${OP}'].Status | [0]" --output text)
+            echo "[$i] operation status: $ST"
+            case "$ST" in
+              SUCCEEDED) break ;;
+              FAILED|ROLLBACK_IN_PROGRESS|ROLLBACK_SUCCEEDED|ROLLBACK_FAILED)
+                echo "Deployment did not succeed: $ST"; exit 1 ;;
+            esac
+            if [ "$i" -eq 40 ]; then echo "Timed out waiting for deployment"; exit 1; fi
+            sleep 15
+          done
+          URL=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query 'Service.ServiceUrl' --output text)
+          echo "Deployed → https://${URL}"
+          {
+            echo "### Word Golf deployed to App Runner 🚀"
+            echo "**URL:** https://${URL}"
+            echo "**Image tag:** \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
