@@ -1,0 +1,28 @@
+{
+  "pr": 11,
+  "branch": "feat/high-contrast",
+  "flagKey": "enable-high-contrast-mode",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "enable-high-contrast-mode-error",
+      "enable-high-contrast-mode-business"
+    ]
+  },
+  "metrics": [
+    {
+      "key": "enable-high-contrast-mode-error",
+      "category": "error",
+      "eventKey": "puzzle_abandoned",
+      "role": "killswitch",
+      "source": "reused_event"
+    },
+    {
+      "key": "enable-high-contrast-mode-business",
+      "category": "business",
+      "eventKey": "puzzle_completed",
+      "role": "pause",
+      "source": "reused_event"
+    }
+  ]
+}
