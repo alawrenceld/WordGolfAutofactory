@@ -30,7 +30,11 @@ export function LDRoot({ clientSideID, children }: LDRootProps) {
     <LDProvider
       clientSideID={clientSideID}
       reactOptions={{ useCamelCaseFlagKeys: false }}
-      context={{ kind: "user", key: "anonymous", anonymous: true }}
+      // Omit `key` for anonymous contexts: the SDK generates a random per-browser
+      // key and persists it in localStorage (stable across reloads, unique across
+      // visitors). A shared/constant key would hash every visitor to the same
+      // bucket, so percentage rollouts and experiments couldn't split traffic.
+      context={{ kind: "user", anonymous: true }}
     >
       <Bridge>{children}</Bridge>
     </LDProvider>
