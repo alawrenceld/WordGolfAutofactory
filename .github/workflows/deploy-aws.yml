@@ -18,6 +18,11 @@
 # Auth is keyless via GitHub OIDC → an IAM role (no stored AWS keys). The role,
 # ECR repo, region, and service ARN come from repo variables; one-time AWS setup
 # is documented in word-golf/docs/APP-RUNNER-DEPLOY.md.
+#
+# The app connects to LaunchDarkly only if VITE_LD_CLIENT_ID (the public,
+# browser-embedded client-side ID) is baked in at build time, so it's passed as a
+# build-arg from the repo variable of the same name. Without it the app builds and
+# runs, but stays in offline mode (safe defaults, no flag evals, no LD events).
 
 name: Deploy Word Golf (AWS App Runner)
 
@@ -47,6 +52,8 @@ jobs:
           platforms: linux/amd64
           push: false
           provenance: false
+          build-args: |
+            VITE_LD_CLIENT_ID=${{ vars.VITE_LD_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -97,6 +104,8 @@ jobs:
           tags: |
             ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPO }}:latest
             ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPO }}:${{ github.sha }}
+          build-args: |
+            VITE_LD_CLIENT_ID=${{ vars.VITE_LD_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

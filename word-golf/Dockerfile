@@ -20,6 +20,11 @@ COPY tsconfig.base.json tsconfig.json ./
 COPY packages ./packages
 COPY apps ./apps
 COPY data ./data
+# The LaunchDarkly *client-side ID* is a public, browser-embedded identifier, so
+# it's a build arg (not a secret). Vite inlines VITE_* env vars at build time; if
+# it's absent the app still builds and runs offline with safe flag defaults.
+ARG VITE_LD_CLIENT_ID=""
+ENV VITE_LD_CLIENT_ID=$VITE_LD_CLIENT_ID
 RUN npm run build --workspace apps/web
 
 # ---- Stage 2: serve with nginx ----
