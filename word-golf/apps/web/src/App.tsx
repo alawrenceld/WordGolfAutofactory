@@ -34,6 +34,7 @@ export function App() {
   const today = utcDateString();
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+  const enableShareResult = useFlag(FLAG_KEYS.enableShareResult);
 
   const puzzle = useMemo<Puzzle>(
     () =>
@@ -183,9 +184,11 @@ export function App() {
           <button type="button" onClick={reset}>
             Play again
           </button>
-          <button type="button" onClick={share}>
-            Share result
-          </button>
+          {enableShareResult && (
+            <button type="button" onClick={share}>
+              Share result
+            </button>
+          )}
         </section>
       ) : (
         <form className="controls" onSubmit={submit}>
