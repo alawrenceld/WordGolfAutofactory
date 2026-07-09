@@ -14,6 +14,8 @@ export const METRIC_EVENTS = {
   // Error
   invalidMove: "invalid_move",
   puzzleAbandoned: "puzzle_abandoned",
+  /** Clipboard write failed during "Share result" (enable-share-result flag). */
+  shareError: "enable-share-result-error",
 } as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[keyof typeof METRIC_EVENTS];

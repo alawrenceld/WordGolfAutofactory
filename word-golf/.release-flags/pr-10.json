@@ -1,0 +1,37 @@
+{
+  "pr": 10,
+  "title": "Add Share result button",
+  "flagKey": "enable-share-result",
+  "flagCreated": true,
+  "defaultVariation": false,
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "enable-share-result-error",
+      "enable-share-result-business"
+    ]
+  },
+  "metrics": [
+    {
+      "key": "enable-share-result-error",
+      "category": "error",
+      "role": "killswitch",
+      "eventKey": "enable-share-result-error",
+      "source": "newly_instrumented",
+      "notes": "Clipboard write failure in share(). A spike here means the Share button is broken in a user's browser context. Triggers flag-off automatically."
+    },
+    {
+      "key": "enable-share-result-business",
+      "category": "business",
+      "role": "pause",
+      "eventKey": "result_shared",
+      "source": "reused_event",
+      "notes": "result_shared was pre-defined in METRIC_EVENTS and config/metrics.json. Fires on successful clipboard write. A drop (relative to control) signals the button renders but fails silently — pauses rollout for human review."
+    }
+  ],
+  "filesModified": [
+    "packages/ld/src/flags.ts",
+    "apps/web/src/App.tsx",
+    "packages/ld/src/events.ts"
+  ]
+}

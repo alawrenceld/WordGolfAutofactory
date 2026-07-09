@@ -127,7 +127,13 @@ export function App() {
     try {
       await navigator.clipboard.writeText(text);
       setFeedback({ kind: "info", text: "Result copied to clipboard!" });
+      // Business metric: share succeeded — emits on the treatment path so the
+      // guarded release can compare share-rate between flag on/off audiences.
+      try { track(METRIC_EVENTS.resultShared); } catch { /* telemetry must never break UX */ }
     } catch {
+      // Error metric: clipboard write failed (permission denied, insecure
+      // context, etc.). Fallback UX is preserved; this is observation-only.
+      try { track(METRIC_EVENTS.shareError); } catch { /* telemetry must never break UX */ }
       setFeedback({ kind: "info", text });
     }
   }
