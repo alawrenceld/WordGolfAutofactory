@@ -11,7 +11,7 @@ export { buildDailyPools, type DailyPools } from "./pools.js";
 export { buildWordGraph, neighbors, isValidWord } from "./graph.js";
 export { bfsPar } from "./par.js";
 export { validateMove, letterDiff } from "./move.js";
-export { relativeToPar, scoreLabel } from "./score.js";
+export { relativeToPar, scoreLabel, buildShareText } from "./score.js";
 export {
   makeDailyPuzzle,
   utcDateString,

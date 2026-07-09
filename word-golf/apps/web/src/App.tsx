@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import {
+  buildShareText,
   makeDailyPuzzle,
   scoreLabel,
   utcDateString,
@@ -120,6 +121,16 @@ export function App() {
     completedRef.current = false;
   }
 
+  async function share() {
+    const text = buildShareText(moves, par, today);
+    try {
+      await navigator.clipboard.writeText(text);
+      setFeedback({ kind: "info", text: "Result copied to clipboard!" });
+    } catch {
+      setFeedback({ kind: "info", text });
+    }
+  }
+
   return (
     <main className="app">
       <header className="header">
@@ -171,6 +182,9 @@ export function App() {
           </h2>
           <button type="button" onClick={reset}>
             Play again
+          </button>
+          <button type="button" onClick={share}>
+            Share result
           </button>
         </section>
       ) : (
