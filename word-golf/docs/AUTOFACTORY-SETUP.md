@@ -150,10 +150,28 @@ flags below (all **off** → safe defaults, so behavior is unchanged until flipp
 The app-repo workflow now uses the checkout + `npm ci` form so it can run either
 provider based on the flag (the bare `uses:` form can't load `@cursor/sdk`).
 
+### Live configuration (validated 2026-07-09)
+
+Both new capabilities are **enabled** and were validated end-to-end with two
+throwaway PRs (since closed, their flags/metrics deleted):
+
+- **Risk-threshold gating is on.** `auto-factory-approval-mode = risk-threshold`
+  at `0.6`. When the planner's `risk_score ≥ 0.6`, the chain **pauses before
+  `autofactory-flag-implementer`**, posts an *Approval gate* check (failing) and
+  an "⏸ awaiting approval" comment, and auto-creates the label
+  `af-approve:autofactory-flag-implementer`. Adding that label re-triggers the
+  run and the chain resumes. (Demoed by temporarily using `always` mode, since
+  small word-game PRs score ~0.2 and rarely hit 0.6.)
+- **Provider A/B is on.** `auto-factory-ai-provider` runs a **50/50 rollout** of
+  `anthropic` vs `cursor`, so runs split across both backends (both use
+  `claude-sonnet-4-6`; judge scores + LLM observability capture per-run quality
+  and latency for comparison). Verified a full chain on Cursor
+  (`[provider: cursor]`, judges 0.98 / 0.92).
+
+**Dial it back:** flip either flag in the LaunchDarkly UI, or from the fork run
+`node .snapshots/set-serve.mjs auto-factory-ai-provider '"anthropic"'` (100%
+Anthropic) / `... auto-factory-approval-mode '"yolo"'` (no gating).
+
 ### Remaining follow-ups
 
-- [ ] **Flip on gating** — set `auto-factory-approval-mode` → `risk-threshold`
-      when we want the factory to pause risky PRs for label approval.
-- [ ] **Provider A/B** — serve `cursor` (or a percentage rollout) from
-      `auto-factory-ai-provider` to compare Anthropic vs Cursor agents.
 - [ ] **Decide on `max_turns`** — keep the 40 override (current) or upstream it.
