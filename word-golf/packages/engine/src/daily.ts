@@ -115,6 +115,24 @@ export function makeDailyPuzzle(options: DailyOptions): Puzzle {
 }
 
 /**
+ * Generate a one-off *practice* puzzle from a random (non-date) seed.
+ *
+ * Same generator and guarantees as {@link makeDailyPuzzle} — a solvable path
+ * always exists and par is finite — but seeded from an unpredictable string so
+ * each call yields a fresh puzzle. Pass an explicit `seed` for reproducibility
+ * (e.g. in tests); otherwise a random one is used.
+ */
+export function makeRandomPuzzle(
+  options: Omit<DailyOptions, "dateUtc"> & { seed?: string }
+): Puzzle {
+  const { seed, ...rest } = options;
+  const resolved =
+    seed ??
+    `practice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return makeDailyPuzzle({ ...rest, dateUtc: resolved });
+}
+
+/**
  * Random-walk from `start` to a target. With `allowedTarget`, the walk keeps
  * going (capped) until it lands on a pool word; if it never does, it BFS-falls
  * back to the nearest pool word. Returns null only when the start is trapped
