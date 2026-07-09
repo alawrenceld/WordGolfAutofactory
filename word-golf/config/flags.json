@@ -44,6 +44,15 @@
       "defaultVariation": 1,
       "hypothesis": "Operational kill switch for the showcase panel.",
       "watchedMetric": null
+    },
+    {
+      "key": "enable-high-contrast-mode",
+      "name": "Enable High Contrast Mode",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "High-contrast palette improves accessibility engagement without hurting core completion metrics.",
+      "watchedMetric": "puzzle_completed"
     }
   ]
 }

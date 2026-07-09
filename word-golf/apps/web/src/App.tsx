@@ -33,6 +33,7 @@ export function App() {
   const today = utcDateString();
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+  const highContrastEnabled = useFlag(FLAG_KEYS.highContrastMode);
 
   const puzzle = useMemo<Puzzle>(
     () =>
@@ -121,19 +122,23 @@ export function App() {
     completedRef.current = false;
   }
 
+  const effectiveHighContrast = highContrastEnabled && highContrast;
+
   return (
-    <main className={`app ${highContrast ? "high-contrast" : ""}`}>
+    <main className={`app ${effectiveHighContrast ? "high-contrast" : ""}`}>
       <header className="header">
         <div className="header-bar">
           <h1>Word Golf</h1>
-          <button
-            type="button"
-            className="contrast-toggle"
-            aria-pressed={highContrast}
-            onClick={() => setHighContrast((on) => !on)}
-          >
-            {highContrast ? "Standard colors" : "High contrast"}
-          </button>
+          {highContrastEnabled && (
+            <button
+              type="button"
+              className="contrast-toggle"
+              aria-pressed={effectiveHighContrast}
+              onClick={() => setHighContrast((on) => !on)}
+            >
+              {effectiveHighContrast ? "Standard colors" : "High contrast"}
+            </button>
+          )}
         </div>
         <p className="tagline">
           Turn the starting word into the target word, one letter at a time.
