@@ -4,35 +4,14 @@ import {
   useFlags as useLDFlags,
   useLDClient,
 } from "launchdarkly-react-client-sdk";
-import Observability from "@launchdarkly/observability";
 import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
 import { FLAG_DEFAULTS, type Flags } from "./flags.js";
 import type { TrackFn } from "./events.js";
-
-/**
- * Lazily-created observability plugin instance.
- * Allocated at most once per session, only when the flag is enabled.
- */
-let _observabilityPlugin: Observability | null = null;
-function getObservabilityPlugin(): Observability {
-  if (!_observabilityPlugin) {
-    _observabilityPlugin = new Observability();
-  }
-  return _observabilityPlugin;
-}
-
-/**
- * Build LDProvider `options` based on whether the observability flag is on.
- * When the flag is off the returned value is `undefined` (no options object),
- * preserving the exact pre-PR behaviour.
- */
-function buildLDOptions(
-  observabilityEnabled: boolean
-): { plugins: Observability[] } | undefined {
-  return observabilityEnabled
-    ? { plugins: [getObservabilityPlugin()] }
-    : undefined;
-}
+import {
+  buildLDOptions,
+  resolveObservabilityFlag,
+  emitObservabilityMetrics,
+} from "./observability-utils.js";
 
 export interface LDRootProps {
   /** App project client-side ID (Vite: VITE_LD_CLIENT_ID). */
@@ -105,34 +84,9 @@ function Bridge({ children, onObservabilityFlagChange }: BridgeProps) {
   //   enable-observability-plugin-error      (error     — plugin threw on init)
   //   enable-observability-plugin-latency    (latency   — ms to initialise plugin)
   useEffect(() => {
-    const liveFlags = ldFlags as Partial<Flags>;
-    const flagValue =
-      "enable-observability-plugin" in liveFlags
-        ? (liveFlags["enable-observability-plugin"] as boolean)
-        : FLAG_DEFAULTS["enable-observability-plugin"];
+    const flagValue = resolveObservabilityFlag(ldFlags as Record<string, unknown>);
     onObservabilityFlagChange(flagValue);
-
-    // Instrument guarded-release metrics on the treatment path only.
-    // Tracking failures are swallowed so they can never break the app.
-    if (flagValue) {
-      try {
-        const t0 = Date.now();
-        getObservabilityPlugin(); // ensures the singleton is allocated
-        const initMs = Date.now() - t0;
-        try {
-          client?.track("enable-observability-plugin-latency", undefined, initMs);
-        } catch (_) { /* telemetry must never throw */ }
-        try {
-          client?.track("enable-observability-plugin-activated");
-        } catch (_) { /* telemetry must never throw */ }
-      } catch (err) {
-        // Plugin initialisation failed — record the error metric then re-raise
-        // nothing (control path is untouched; we just report the failure).
-        try {
-          client?.track("enable-observability-plugin-error");
-        } catch (_) { /* telemetry must never throw */ }
-      }
-    }
+    emitObservabilityMetrics(flagValue, client);
   }, [ldFlags, onObservabilityFlagChange, client]);
 
   const value = useMemo<WordGolfLD>(() => {
