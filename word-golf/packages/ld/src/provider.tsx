@@ -4,9 +4,13 @@ import {
   useFlags as useLDFlags,
   useLDClient,
 } from "launchdarkly-react-client-sdk";
+import Observability from "@launchdarkly/observability";
 import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
 import { FLAG_DEFAULTS, type Flags } from "./flags.js";
 import type { TrackFn } from "./events.js";
+
+/** Shared observability plugin — errors, logs, traces, and web vitals to LD. */
+const observabilityPlugin = new Observability();
 
 export interface LDRootProps {
   /** App project client-side ID (Vite: VITE_LD_CLIENT_ID). */
@@ -29,6 +33,7 @@ export function LDRoot({ clientSideID, children }: LDRootProps) {
   return (
     <LDProvider
       clientSideID={clientSideID}
+      options={{ plugins: [observabilityPlugin] }}
       reactOptions={{ useCamelCaseFlagKeys: false }}
       // Omit `key` for anonymous contexts: the SDK generates a random per-browser
       // key and persists it in localStorage (stable across reloads, unique across
