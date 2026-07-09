@@ -8,15 +8,9 @@ import "./styles.css";
 // project. When absent, the app runs offline with safe flag defaults.
 const clientSideID = import.meta.env.VITE_LD_CLIENT_ID as string | undefined;
 
-// Feature flag: enable-observability-plugin
-// Set VITE_LD_OBSERVABILITY=true to enable error tracking, web vitals, and
-// traces via the @launchdarkly/observability plugin. Defaults to false (off).
-const enableObservability =
-  import.meta.env.VITE_LD_OBSERVABILITY === "true";
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <LDRoot clientSideID={clientSideID} enableObservability={enableObservability}>
+    <LDRoot clientSideID={clientSideID}>
       <App />
     </LDRoot>
   </StrictMode>

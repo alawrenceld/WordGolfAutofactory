@@ -14,10 +14,6 @@ export const METRIC_EVENTS = {
   // Error
   invalidMove: "invalid_move",
   puzzleAbandoned: "puzzle_abandoned",
-  // Observability plugin (guarded-release metrics for enable-observability-plugin)
-  observabilityPluginError: "enable-observability-plugin-error",
-  observabilityPluginInitMs: "enable-observability-plugin-init-ms",
-  observabilityPluginActivated: "enable-observability-plugin-activated",
 } as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[keyof typeof METRIC_EVENTS];
