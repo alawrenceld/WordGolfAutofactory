@@ -1,0 +1,44 @@
+{
+  "pr": 17,
+  "branch": "feat/ld-observability-plugin",
+  "flag_key": "enable-observability-plugin",
+  "flag_kind": "boolean",
+  "created_by": "auto-factory/metrics-author",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "enable-observability-plugin-error",
+      "enable-observability-plugin-latency",
+      "enable-observability-plugin-activation-rate"
+    ]
+  },
+  "metrics": [
+    {
+      "key": "enable-observability-plugin-error",
+      "category": "error",
+      "event_key": "enable-observability-plugin-error",
+      "role": "killswitch",
+      "source": "newly_instrumented",
+      "randomization_unit": "user",
+      "notes": "Plugin init threw an exception. A spike in the treatment arm automatically flips the flag off to protect users."
+    },
+    {
+      "key": "enable-observability-plugin-latency",
+      "category": "latency",
+      "event_key": "enable-observability-plugin-latency",
+      "role": "pause",
+      "source": "newly_instrumented",
+      "randomization_unit": "user",
+      "notes": "Milliseconds to initialise the Observability singleton. A latency regression pauses the rollout for human review; does not auto-rollback."
+    },
+    {
+      "key": "enable-observability-plugin-activation-rate",
+      "category": "business",
+      "event_key": "enable-observability-plugin-activated",
+      "role": "monitoring",
+      "source": "newly_instrumented",
+      "randomization_unit": "user",
+      "notes": "Confirms the plugin activated successfully for treatment users. Observe only; does not gate the rollout automatically."
+    }
+  ]
+}

@@ -100,6 +100,10 @@ function Bridge({ children, onObservabilityFlagChange }: BridgeProps) {
   // Propagate the live observability flag value to LDRoot so the plugin can
   // be toggled on/off. This effect runs whenever the SDK delivers a new value
   // for the flag, keeping LDRoot's state in sync.
+  // Also emits guarded-release metric events so the rollout can be measured:
+  //   enable-observability-plugin-activated  (business  — plugin came up)
+  //   enable-observability-plugin-error      (error     — plugin threw on init)
+  //   enable-observability-plugin-latency    (latency   — ms to initialise plugin)
   useEffect(() => {
     const liveFlags = ldFlags as Partial<Flags>;
     const flagValue =
@@ -107,7 +111,29 @@ function Bridge({ children, onObservabilityFlagChange }: BridgeProps) {
         ? (liveFlags["enable-observability-plugin"] as boolean)
         : FLAG_DEFAULTS["enable-observability-plugin"];
     onObservabilityFlagChange(flagValue);
-  }, [ldFlags, onObservabilityFlagChange]);
+
+    // Instrument guarded-release metrics on the treatment path only.
+    // Tracking failures are swallowed so they can never break the app.
+    if (flagValue) {
+      try {
+        const t0 = Date.now();
+        getObservabilityPlugin(); // ensures the singleton is allocated
+        const initMs = Date.now() - t0;
+        try {
+          client?.track("enable-observability-plugin-latency", undefined, initMs);
+        } catch (_) { /* telemetry must never throw */ }
+        try {
+          client?.track("enable-observability-plugin-activated");
+        } catch (_) { /* telemetry must never throw */ }
+      } catch (err) {
+        // Plugin initialisation failed — record the error metric then re-raise
+        // nothing (control path is untouched; we just report the failure).
+        try {
+          client?.track("enable-observability-plugin-error");
+        } catch (_) { /* telemetry must never throw */ }
+      }
+    }
+  }, [ldFlags, onObservabilityFlagChange, client]);
 
   const value = useMemo<WordGolfLD>(() => {
     const flags: Flags = { ...FLAG_DEFAULTS, ...(ldFlags as Partial<Flags>) };
