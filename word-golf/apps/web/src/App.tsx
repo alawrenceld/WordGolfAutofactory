@@ -33,12 +33,15 @@ export function App() {
   const today = utcDateString();
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
+  const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
+  // When the flag is off this always stays on the daily puzzle (control path).
   const [puzzle, setPuzzle] = useState<Puzzle>(() =>
     makeDailyPuzzle({ dateUtc: today, startPool, graph, steps: 6, targetPool })
   );
+  // isDaily is only meaningful when enableRandomPuzzle is on; defaults true.
   const [isDaily, setIsDaily] = useState(true);
 
   const [path, setPath] = useState<string[]>([puzzle.start]);
@@ -169,19 +172,24 @@ export function App() {
       <section className="scoreboard">
         <Stat label="Moves" value={String(moves)} />
         <Stat label="Par" value={puzzle.par === null ? "—" : String(puzzle.par)} />
-        <Stat label={isDaily ? "Daily" : "Practice"} value={isDaily ? today : "Random"} />
+        <Stat
+          label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
+          value={enableRandomPuzzle && !isDaily ? "Random" : today}
+        />
       </section>
 
-      <section className="puzzle-actions">
-        <button type="button" onClick={newRandomPuzzle}>
-          Random puzzle
-        </button>
-        {!isDaily && (
-          <button type="button" className="link" onClick={backToDaily}>
-            Back to today's daily
+      {enableRandomPuzzle && (
+        <section className="puzzle-actions">
+          <button type="button" onClick={newRandomPuzzle}>
+            Random puzzle
           </button>
-        )}
-      </section>
+          {!isDaily && (
+            <button type="button" className="link" onClick={backToDaily}>
+              Back to today's daily
+            </button>
+          )}
+        </section>
+      )}
 
       <ol className="track" aria-label="Move history">
         {path.map((word, i) => (

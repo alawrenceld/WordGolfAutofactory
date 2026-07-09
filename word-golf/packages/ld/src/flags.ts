@@ -10,6 +10,7 @@ export const FLAG_KEYS = {
   wordPoolDifficulty: "word-pool-difficulty",
   dailyTheme: "daily-theme",
   showMissionControl: "show-mission-control",
+  enableRandomPuzzle: "enable-random-puzzle",
 } as const;
 
 export type ParAlgorithm = "shortest" | "no-reuse" | "heuristic";
@@ -21,6 +22,7 @@ export interface Flags {
   "word-pool-difficulty": WordPoolDifficulty;
   "daily-theme": string;
   "show-mission-control": boolean;
+  "enable-random-puzzle": boolean;
 }
 
 /**
@@ -34,4 +36,5 @@ export const FLAG_DEFAULTS: Flags = {
   "word-pool-difficulty": "medium",
   "daily-theme": "",
   "show-mission-control": true,
+  "enable-random-puzzle": false,
 };
