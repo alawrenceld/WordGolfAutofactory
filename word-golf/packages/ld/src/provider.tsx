@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   LDProvider,
   useFlags as useLDFlags,
@@ -9,7 +9,11 @@ import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
 import { FLAG_DEFAULTS, type Flags } from "./flags.js";
 import type { TrackFn } from "./events.js";
 
-/** Shared observability plugin — errors, logs, traces, and web vitals to LD. */
+/**
+ * Shared observability plugin instance — errors, logs, traces, and web vitals.
+ * Instantiated once at module level so it is reused across LDProvider remounts.
+ * Only injected into LDProvider when the `enable-observability-plugin` flag is on.
+ */
 const observabilityPlugin = new Observability();
 
 export interface LDRootProps {
@@ -21,29 +25,66 @@ export interface LDRootProps {
 /**
  * Root LaunchDarkly provider.
  *
- * When `clientSideID` is set, it connects the real client (with the Observability
- * plugin for errors, web vitals, and traces) and bridges flags + `track` into
- * our typed context. When it is absent (local dev, tests, no LD configured), it
- * renders an offline context with safe defaults and a no-op tracker.
+ * When `clientSideID` is set, it connects the real client and bridges flags +
+ * `track` into our typed context. When it is absent (local dev, tests, no LD
+ * configured), it renders an offline context with safe defaults and a no-op
+ * tracker, so the game is fully playable without any LaunchDarkly setup.
+ *
+ * The Observability plugin (errors, web vitals, traces) is gated behind the
+ * `enable-observability-plugin` feature flag. The provider mounts initially
+ * without the plugin (control path / flag off). Once the LD client connects and
+ * the flag evaluates to `true`, Bridge signals back and LDRoot remounts
+ * LDProvider with the plugin included (treatment path / flag on).
  */
 export function LDRoot({ clientSideID, children }: LDRootProps) {
   if (!clientSideID) {
     return <LDContext.Provider value={defaultLD}>{children}</LDContext.Provider>;
   }
+
+  // pluginsEnabled drives which plugin array is passed to LDProvider.
+  // It starts false (control: no plugin) and flips to true when Bridge reads
+  // the live flag value as true. Changing the key forces LDProvider to remount
+  // with the updated options so the plugin is properly registered.
+  return <LDRootConnected clientSideID={clientSideID}>{children}</LDRootConnected>;
+}
+
+/** Inner stateful shell so hooks are valid (avoids early-return hook violations). */
+function LDRootConnected({ clientSideID, children }: Required<LDRootProps>) {
+  const [pluginsEnabled, setPluginsEnabled] = useState(false);
+
+  // Control path (flag off): no plugins array — preserves pre-PR behavior exactly.
+  // Treatment path (flag on): include the observability plugin.
+  const ldOptions = pluginsEnabled
+    ? { plugins: [observabilityPlugin] }
+    : undefined;
+
   return (
     <LDProvider
+      // Re-key forces LDProvider to remount when plugin state changes so the
+      // plugin is registered from the start of that client's lifetime.
+      key={String(pluginsEnabled)}
       clientSideID={clientSideID}
-      options={{ plugins: [observabilityPlugin] }}
+      options={ldOptions}
       reactOptions={{ useCamelCaseFlagKeys: false }}
+      // Omit `key` for anonymous contexts: the SDK generates a random per-browser
+      // key and persists it in localStorage (stable across reloads, unique across
+      // visitors). A shared/constant key would hash every visitor to the same
+      // bucket, so percentage rollouts and experiments couldn't split traffic.
       context={{ kind: "user", anonymous: true }}
     >
-      <Bridge>{children}</Bridge>
+      <Bridge onObservabilityFlag={setPluginsEnabled}>{children}</Bridge>
     </LDProvider>
   );
 }
 
 /** Reads the live SDK state and exposes it through our typed context. */
-function Bridge({ children }: { children: ReactNode }) {
+function Bridge({
+  children,
+  onObservabilityFlag,
+}: {
+  children: ReactNode;
+  onObservabilityFlag: (enabled: boolean) => void;
+}) {
   const ldFlags = useLDFlags();
   const client = useLDClient();
   const value = useMemo<WordGolfLD>(() => {
@@ -53,5 +94,16 @@ function Bridge({ children }: { children: ReactNode }) {
     };
     return { flags, track, live: Boolean(client) };
   }, [ldFlags, client]);
+
+  // Propagate the enable-observability-plugin flag up to LDRootConnected so it
+  // can remount LDProvider with (or without) the plugin. Using the resolved
+  // flags object keeps this in sync with the same flag evaluation path used
+  // everywhere else in the app.
+  const observabilityEnabled = value.flags["enable-observability-plugin"];
+  useMemo(() => {
+    onObservabilityFlag(observabilityEnabled);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [observabilityEnabled]);
+
   return <LDContext.Provider value={value}>{children}</LDContext.Provider>;
 }
