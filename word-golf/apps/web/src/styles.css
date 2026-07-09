@@ -213,6 +213,35 @@ button:disabled {
   margin: 0 0 12px;
 }
 
+.header-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contrast-toggle {
+  font-size: 0.75rem;
+  padding: 6px 10px;
+}
+
+/* High-contrast mode: brighter tiles + stronger borders for low-vision players. */
+.app.high-contrast {
+  --line: #ffffff;
+  --target: #00e676;
+  --accent: #ffd400;
+}
+
+.app.high-contrast .tile {
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.app.high-contrast .tile-on {
+  background: var(--target);
+  color: #000;
+}
+
 .mission-control-stub {
   margin: 24px 0 0;
   padding: 12px 14px;

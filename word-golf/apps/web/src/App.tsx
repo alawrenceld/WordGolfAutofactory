@@ -43,6 +43,7 @@ export function App() {
   const [path, setPath] = useState<string[]>([puzzle.start]);
   const [input, setInput] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [highContrast, setHighContrast] = useState(false);
 
   const current = path[path.length - 1];
   const moves = path.length - 1;
@@ -121,9 +122,19 @@ export function App() {
   }
 
   return (
-    <main className="app">
+    <main className={`app ${highContrast ? "high-contrast" : ""}`}>
       <header className="header">
-        <h1>Word Golf</h1>
+        <div className="header-bar">
+          <h1>Word Golf</h1>
+          <button
+            type="button"
+            className="contrast-toggle"
+            aria-pressed={highContrast}
+            onClick={() => setHighContrast((on) => !on)}
+          >
+            {highContrast ? "Standard colors" : "High contrast"}
+          </button>
+        </div>
         <p className="tagline">
           Turn the starting word into the target word, one letter at a time.
           Every step must be a real word — anything else reverts to the last
