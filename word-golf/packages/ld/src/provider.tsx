@@ -7,7 +7,7 @@ import {
 import Observability from "@launchdarkly/observability";
 import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
 import { FLAG_DEFAULTS, type Flags } from "./flags.js";
-import type { TrackFn } from "./events.js";
+import { METRIC_EVENTS, type TrackFn } from "./events.js";
 
 /**
  * Shared observability plugin instance — errors, logs, traces, and web vitals.
@@ -51,12 +51,22 @@ export function LDRoot({ clientSideID, children }: LDRootProps) {
 /** Inner stateful shell so hooks are valid (avoids early-return hook violations). */
 function LDRootConnected({ clientSideID, children }: Required<LDRootProps>) {
   const [pluginsEnabled, setPluginsEnabled] = useState(false);
+  // Tracks whether the last plugin activation attempt threw so Bridge can emit
+  // the error metric event.
+  const [pluginActivationFailed, setPluginActivationFailed] = useState(false);
 
   // Control path (flag off): no plugins array — preserves pre-PR behavior exactly.
   // Treatment path (flag on): include the observability plugin.
-  const ldOptions = pluginsEnabled
-    ? { plugins: [observabilityPlugin] }
-    : undefined;
+  let ldOptions: { plugins: Observability[] } | undefined;
+  try {
+    ldOptions = pluginsEnabled ? { plugins: [observabilityPlugin] } : undefined;
+    if (pluginsEnabled) setPluginActivationFailed(false);
+  } catch {
+    // If the plugin constructor ever throws, fall back to no-plugin (control)
+    // and signal to Bridge that it should emit the error metric.
+    ldOptions = undefined;
+    setPluginActivationFailed(true);
+  }
 
   return (
     <LDProvider
@@ -72,7 +82,12 @@ function LDRootConnected({ clientSideID, children }: Required<LDRootProps>) {
       // bucket, so percentage rollouts and experiments couldn't split traffic.
       context={{ kind: "user", anonymous: true }}
     >
-      <Bridge onObservabilityFlag={setPluginsEnabled}>{children}</Bridge>
+      <Bridge
+        onObservabilityFlag={setPluginsEnabled}
+        pluginActivationFailed={pluginActivationFailed}
+      >
+        {children}
+      </Bridge>
     </LDProvider>
   );
 }
@@ -81,9 +96,12 @@ function LDRootConnected({ clientSideID, children }: Required<LDRootProps>) {
 function Bridge({
   children,
   onObservabilityFlag,
+  pluginActivationFailed,
 }: {
   children: ReactNode;
   onObservabilityFlag: (enabled: boolean) => void;
+  /** True when LDRootConnected caught an error building the plugin options. */
+  pluginActivationFailed?: boolean;
 }) {
   const ldFlags = useLDFlags();
   const client = useLDClient();
@@ -102,8 +120,34 @@ function Bridge({
   const observabilityEnabled = value.flags["enable-observability-plugin"];
   useMemo(() => {
     onObservabilityFlag(observabilityEnabled);
+
+    // Guarded-release instrumentation: emit telemetry events so LaunchDarkly
+    // can compare treatment vs. control audiences during the flag rollout.
+    // Telemetry failures are silenced so they can never break the request.
+    if (observabilityEnabled) {
+      try {
+        // Business: plugin successfully activated — higher is better.
+        client?.track(METRIC_EVENTS.observabilityPluginActivated);
+      } catch {
+        // Intentionally silenced — telemetry must never break the request.
+      }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [observabilityEnabled]);
+
+  // Error metric: emit when LDRootConnected signals a plugin activation failure.
+  // Tracked on the same context as the flag so randomization units match.
+  useMemo(() => {
+    if (pluginActivationFailed) {
+      try {
+        // Error: plugin activation threw — lower is better (killswitch signal).
+        client?.track(METRIC_EVENTS.observabilityPluginError);
+      } catch {
+        // Intentionally silenced — telemetry must never break the request.
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pluginActivationFailed]);
 
   return <LDContext.Provider value={value}>{children}</LDContext.Provider>;
 }

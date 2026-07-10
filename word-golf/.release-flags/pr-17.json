@@ -1,0 +1,34 @@
+{
+  "pr": 17,
+  "branch": "feat/ld-observability-plugin",
+  "flag_key": "enable-observability-plugin",
+  "flag_kind": "boolean",
+  "created_by": "auto-factory/metrics-author",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "enable-observability-plugin-error-rate",
+      "enable-observability-plugin-activation-rate"
+    ]
+  },
+  "metrics": [
+    {
+      "key": "enable-observability-plugin-error-rate",
+      "category": "error",
+      "event_key": "enable-observability-plugin-error",
+      "role": "killswitch",
+      "source": "newly_instrumented",
+      "randomization_unit": "user",
+      "notes": "Emitted in Bridge when LDRootConnected signals a plugin activation failure (pluginActivationFailed=true). A spike means the plugin is crashing on construction — flip the flag off immediately."
+    },
+    {
+      "key": "enable-observability-plugin-activation-rate",
+      "category": "business",
+      "event_key": "enable-observability-plugin-activated",
+      "role": "monitoring",
+      "source": "newly_instrumented",
+      "randomization_unit": "user",
+      "notes": "Emitted in Bridge when observabilityEnabled flips to true and the plugin activates without error. Higher is better. Confirms the plugin is being registered for users in the treatment group. Does not gate automatically."
+    }
+  ]
+}

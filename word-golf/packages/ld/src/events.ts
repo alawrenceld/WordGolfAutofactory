@@ -14,6 +14,11 @@ export const METRIC_EVENTS = {
   // Error
   invalidMove: "invalid_move",
   puzzleAbandoned: "puzzle_abandoned",
+  // Observability plugin (gated by enable-observability-plugin flag)
+  /** Emitted when the observability plugin activates without error (treatment path). */
+  observabilityPluginActivated: "enable-observability-plugin-activated",
+  /** Emitted when the observability plugin activation throws (treatment path). */
+  observabilityPluginError: "enable-observability-plugin-error",
 } as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[keyof typeof METRIC_EVENTS];
