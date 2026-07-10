@@ -12,6 +12,7 @@
     "typecheck": "tsc --build"
   },
   "dependencies": {
+    "@launchdarkly/observability": "^1.1.16",
     "launchdarkly-react-client-sdk": "^3.6.0"
   },
   "peerDependencies": {

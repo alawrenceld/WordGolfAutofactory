@@ -4,9 +4,20 @@ import {
   useFlags as useLDFlags,
   useLDClient,
 } from "launchdarkly-react-client-sdk";
+import Observability from "@launchdarkly/observability";
 import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
 import { FLAG_DEFAULTS, type Flags } from "./flags.js";
 import type { TrackFn } from "./events.js";
+
+let observabilityPlugin: Observability | null = null;
+
+/** Lazily construct the plugin only when a live LD client is in play. */
+function getObservabilityPlugin(): Observability {
+  if (!observabilityPlugin) {
+    observabilityPlugin = new Observability();
+  }
+  return observabilityPlugin;
+}
 
 export interface LDRootProps {
   /** App project client-side ID (Vite: VITE_LD_CLIENT_ID). */
@@ -17,23 +28,21 @@ export interface LDRootProps {
 /**
  * Root LaunchDarkly provider.
  *
- * When `clientSideID` is set, it connects the real client and bridges flags +
- * `track` into our typed context. When it is absent (local dev, tests, no LD
- * configured), it renders an offline context with safe defaults and a no-op
- * tracker, so the game is fully playable without any LaunchDarkly setup.
+ * When `clientSideID` is set, it connects the real client (with the Observability
+ * plugin for errors, web vitals, and traces) and bridges flags + `track` into
+ * our typed context. When it is absent (local dev, tests, no LD configured), it
+ * renders an offline context with safe defaults and a no-op tracker.
  */
 export function LDRoot({ clientSideID, children }: LDRootProps) {
   if (!clientSideID) {
     return <LDContext.Provider value={defaultLD}>{children}</LDContext.Provider>;
   }
+
   return (
     <LDProvider
       clientSideID={clientSideID}
+      options={{ plugins: [getObservabilityPlugin()] }}
       reactOptions={{ useCamelCaseFlagKeys: false }}
-      // Omit `key` for anonymous contexts: the SDK generates a random per-browser
-      // key and persists it in localStorage (stable across reloads, unique across
-      // visitors). A shared/constant key would hash every visitor to the same
-      // bucket, so percentage rollouts and experiments couldn't split traffic.
       context={{ kind: "user", anonymous: true }}
     >
       <Bridge>{children}</Bridge>
