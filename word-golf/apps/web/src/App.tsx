@@ -172,15 +172,39 @@ export function App() {
 
   function newRandomPuzzle(difficulty: PracticeDifficulty = practiceDifficulty) {
     const pools = practicePools(difficulty);
-    startPuzzle(
-      makePracticePuzzle({
+    const genStart = Date.now();
+    try {
+      const puzzle = makePracticePuzzle({
         difficulty,
         graph,
         steps: 6,
         ...pools,
-      }),
-      false
-    );
+      });
+      // Latency: measure puzzle-generation time (both treatment and control paths).
+      try {
+        track(METRIC_EVENTS.practicePuzzleGenerationMs, {
+          value: Date.now() - genStart,
+          data: { difficulty },
+        });
+      } catch {
+        // telemetry must not affect gameplay
+      }
+      // Business: practice puzzle successfully started.
+      try {
+        track(METRIC_EVENTS.practicePuzzleStarted, { data: { difficulty } });
+      } catch {
+        // telemetry must not affect gameplay
+      }
+      startPuzzle(puzzle, false);
+    } catch (err) {
+      // Error: puzzle generation failed.
+      try {
+        track(METRIC_EVENTS.practicePuzzleError, { data: { difficulty } });
+      } catch {
+        // telemetry must not affect gameplay
+      }
+      throw err;
+    }
   }
 
   function backToDaily() {
