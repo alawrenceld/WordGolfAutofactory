@@ -1,6 +1,7 @@
 import { bfsPar } from "./par.js";
 import { neighbors } from "./graph.js";
 import { seededRng, pick } from "./rng.js";
+import type { PracticeDifficulty, PracticePoolOptions } from "./pools.js";
 import type { Puzzle, WordGraph } from "./types.js";
 
 /**
@@ -130,6 +131,111 @@ export function makeRandomPuzzle(
     seed ??
     `practice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   return makeDailyPuzzle({ ...rest, dateUtc: resolved });
+}
+
+/**
+ * Practice puzzle respecting Easy/Medium/Hard pool settings. Hard mode uses a
+ * target-first search so obscure targets are actually reachable.
+ */
+export function makePracticePuzzle(
+  options: PracticePoolOptions & {
+    difficulty: PracticeDifficulty;
+    graph: WordGraph;
+    steps?: number;
+    seed?: string;
+  }
+): Puzzle {
+  const {
+    difficulty,
+    graph,
+    steps = 6,
+    seed,
+    hardTargetPool,
+    startPool,
+    targetPool,
+    minPar,
+  } = options;
+  const resolved =
+    seed ??
+    `practice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+  if (difficulty === "hard" && hardTargetPool?.length) {
+    const hard = makeHardPracticePuzzle({
+      seed: resolved,
+      graph,
+      startPool,
+      difficultPool: hardTargetPool,
+      minPar,
+    });
+    if (hard) return hard;
+  }
+
+  return makeRandomPuzzle({
+    seed: resolved,
+    startPool,
+    graph,
+    steps,
+    targetPool,
+    minPar,
+  });
+}
+
+/** Pick a difficult target, then a start at least `minPar` moves away. */
+function makeHardPracticePuzzle(options: {
+  seed: string;
+  graph: WordGraph;
+  startPool: string[];
+  difficultPool: string[];
+  minPar: number;
+}): Puzzle | null {
+  const { seed, graph, startPool, difficultPool, minPar } = options;
+  const rng = seededRng(seed);
+  const allowedStarts = new Set(startPool.filter((w) => graph.valid.has(w)));
+  const targets = difficultPool.filter(
+    (w) => graph.valid.has(w) && neighbors(w, graph).length > 0
+  );
+  if (!targets.length || !allowedStarts.size) return null;
+
+  const ATTEMPTS = 50;
+  let best: Puzzle | null = null;
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    const target = pick(rng, targets);
+    const starts = startsAtMinPar(target, graph, minPar, allowedStarts);
+    if (!starts.length) continue;
+    const start = pick(rng, starts);
+    const par = bfsPar(start, target, graph);
+    if (par === null || par < minPar) continue;
+    const puzzle: Puzzle = { start, target, par };
+    if (par >= minPar) return puzzle;
+    if (!best || (best.par ?? 0) < par) best = puzzle;
+  }
+  return best;
+}
+
+function startsAtMinPar(
+  target: string,
+  graph: WordGraph,
+  minPar: number,
+  allowedStarts: Set<string>
+): string[] {
+  const visited = new Set([target]);
+  let frontier = [target];
+  let distance = 0;
+  const hits: string[] = [];
+  while (frontier.length) {
+    distance++;
+    const next: string[] = [];
+    for (const word of frontier) {
+      for (const n of neighbors(word, graph)) {
+        if (visited.has(n)) continue;
+        visited.add(n);
+        if (distance >= minPar && allowedStarts.has(n)) hits.push(n);
+        next.push(n);
+      }
+    }
+    frontier = next;
+  }
+  return hits;
 }
 
 /**
