@@ -8,6 +8,7 @@ import {
   makeDailyPuzzle,
   makeRandomPuzzle,
   neighbors,
+  relativeToPar,
   scoreLabel,
   utcDateString,
   validateMove,
@@ -37,6 +38,7 @@ export function App() {
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
   const showHintButton = useFlag(FLAG_KEYS.hintButton);
+  const enableShareResultButton = useFlag(FLAG_KEYS.shareResultButton);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -170,6 +172,28 @@ export function App() {
     );
   }
 
+  async function shareResult() {
+    const text = formatDailyShareText(today, moves, par);
+    try {
+      await navigator.clipboard.writeText(text);
+      // Business metric: the share action completed successfully.
+      try {
+        track(METRIC_EVENTS.resultShared);
+      } catch {
+        // intentionally swallowed — telemetry must not affect gameplay
+      }
+      setFeedback({ kind: "info", text: "Result copied — paste anywhere to share." });
+    } catch {
+      // Error metric: clipboard write failed.
+      try {
+        track(METRIC_EVENTS.clipboardError);
+      } catch {
+        // intentionally swallowed — telemetry must not affect gameplay
+      }
+      setFeedback({ kind: "error", text: "Could not copy — try selecting the result manually." });
+    }
+  }
+
   return (
     <main className="app">
       <header className="header">
@@ -235,9 +259,16 @@ export function App() {
             {scoreLabel(moves, par)} — solved in {moves}
             {puzzle.par !== null ? ` (par ${puzzle.par})` : ""}
           </h2>
-          <button type="button" onClick={reset}>
-            Play again
-          </button>
+          <div className="win-actions">
+            {isDaily && enableShareResultButton && (
+              <button type="button" onClick={shareResult}>
+                Share result
+              </button>
+            )}
+            <button type="button" onClick={reset}>
+              Play again
+            </button>
+          </div>
         </section>
       ) : (
         <form className="controls" onSubmit={submit}>
@@ -285,6 +316,24 @@ export function App() {
       )}
     </main>
   );
+}
+
+/** Days since launch epoch → spoiler-free daily puzzle number for share text. */
+const SHARE_EPOCH = "2024-06-18";
+
+function dailyPuzzleNumber(dateUtc: string): number {
+  const epochMs = Date.parse(`${SHARE_EPOCH}T00:00:00Z`);
+  const dayMs = Date.parse(`${dateUtc}T00:00:00Z`);
+  return Math.floor((dayMs - epochMs) / 86_400_000) + 1;
+}
+
+/** Spoiler-free share line (plan.md §2.4): no words from the board revealed. */
+function formatDailyShareText(dateUtc: string, moves: number, par: number): string {
+  const n = dailyPuzzleNumber(dateUtc);
+  const delta = relativeToPar(moves, par);
+  const score =
+    delta === 0 ? "E" : delta > 0 ? `+${delta}` : String(delta);
+  return `Word Golf #${n} — solved in ${moves} (par ${par}) 🏌️ ${score}`;
 }
 
 /**

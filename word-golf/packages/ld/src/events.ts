@@ -8,6 +8,8 @@ export const METRIC_EVENTS = {
   madePar: "made_par",
   dailyReturned: "daily_returned",
   resultShared: "result_shared",
+  /** Fired when the clipboard write in shareResult() fails (treatment path only). */
+  clipboardError: "enable-share-result-button-clipboard-error",
   /** Fired each time a player clicks the Hint button (treatment path only). */
   hintButtonUsed: "hint-button-used",
   // Latency (numeric metrics; pass `value`)
