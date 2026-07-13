@@ -1,16 +1,19 @@
 # Deploying Word Golf to AWS App Runner
 
-The [`Deploy Word Golf (AWS App Runner)`](../../.github/workflows/deploy-aws.yml)
-workflow builds the web app image, pushes it to **Amazon ECR**, and triggers an
-**App Runner** deployment on every merge to `main` (and on manual dispatch).
-Pull requests only build the image to validate the Dockerfile.
+Two workflows split PR validation from production deploy:
+
+- [`Word Golf — Docker build check`](../../.github/workflows/word-golf-docker-validate.yml) —
+  pull requests build the image to validate the Dockerfile (no push, no deploy).
+- [`Word Golf — Deploy to App Runner`](../../.github/workflows/word-golf-deploy.yml) —
+  merges to `main` (and manual dispatch) build the image, push to **Amazon ECR**,
+  and trigger an **App Runner** deployment.
 
 Auth is keyless via **GitHub OIDC → an IAM role** — no AWS keys are stored. GitHub
 mints a short-lived OIDC token that AWS STS exchanges for credentials scoped to
 one role, usable only from `main` of this repo.
 
 ```
-merge to main ─▶ deploy-aws.yml ─▶ build image (linux/amd64)
+merge to main ─▶ word-golf-deploy.yml ─▶ build image (linux/amd64)
                                   ─▶ push  <acct>.dkr.ecr.us-east-2.amazonaws.com/word-golf
                                   ─▶ apprunner start-deployment → wait → URL
 ```
@@ -134,14 +137,14 @@ aws apprunner describe-custom-domains --service-arn "$SVC" \
 
 ```bash
 # Manually:
-gh workflow run "Deploy Word Golf (AWS App Runner)"
+gh workflow run "Word Golf — Deploy to App Runner"
 # …or merge any PR that touches word-golf/** to main.
 ```
 
 Watch it, then grab the URL:
 
 ```bash
-gh run watch "$(gh run list --workflow=deploy-aws.yml --limit 1 --json databaseId -q '.[0].databaseId')"
+gh run watch "$(gh run list --workflow=word-golf-deploy.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 aws apprunner describe-service \
   --service-arn arn:aws:apprunner:us-east-2:955116512041:service/word-golf/436622e3ad2943e4b9ae9dc527a31ecd \
   --query 'Service.ServiceUrl' --output text

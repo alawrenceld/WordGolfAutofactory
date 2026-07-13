@@ -1,10 +1,11 @@
 # Build the Word Golf web app image and deploy it to AWS App Runner.
 #
-# - Pull requests (open/update): build only (validate the Dockerfile). No push, no deploy.
 # - PR merged into main: a tiny `redeploy-on-merge` job re-invokes this workflow via
 #   workflow_dispatch on `main`, and the `deploy` job then builds (linux/amd64), pushes
 #   to Amazon ECR, and rolls App Runner to the fresh image.
 # - Manual `workflow_dispatch`: same deploy path.
+#
+# PR Docker validation (build only, no deploy) lives in word-golf-docker-validate.yml.
 #
 # Why the merge → self-dispatch hop (instead of `on: push` to main): the AutoFactory
 # commits flag wiring/metrics to the PR branch as github-actions[bot]. GitHub does not
@@ -24,43 +25,23 @@
 # build-arg from the repo variable of the same name. Without it the app builds and
 # runs, but stays in offline mode (safe defaults, no flag evals, no LD events).
 
-name: Deploy Word Golf (AWS App Runner)
+name: Word Golf — Deploy to App Runner
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [closed]
     paths:
       - "word-golf/**"
-      - "!word-golf/**/*.md" # docs-only changes don't need a build
+      - "!word-golf/**/*.md" # docs-only changes don't need a deploy
       - "!word-golf/docs/**"
-      - ".github/workflows/deploy-aws.yml"
+      - ".github/workflows/word-golf-deploy.yml"
   workflow_dispatch:
 
 jobs:
-  # PR validation: prove the image still builds, without touching AWS.
-  validate:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build (no push)
-        uses: docker/build-push-action@v6
-        with:
-          context: word-golf
-          file: word-golf/Dockerfile
-          platforms: linux/amd64
-          push: false
-          provenance: false
-          build-args: |
-            VITE_LD_CLIENT_ID=${{ vars.VITE_LD_CLIENT_ID }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   # On merge into main: re-invoke this workflow on `main` so the deploy runs in the
   # main-branch OIDC context (keeps the IAM trust pinned to main; no PAT needed).
   redeploy-on-merge:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       actions: write # dispatch this workflow via the ephemeral GITHUB_TOKEN
@@ -68,7 +49,7 @@ jobs:
       - name: Dispatch deploy on main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run deploy-aws.yml --ref main -R "${{ github.repository }}"
+        run: gh workflow run word-golf-deploy.yml --ref main -R "${{ github.repository }}"
 
   # Manual / merge-dispatched: build → push to ECR → deploy to App Runner.
   deploy:
