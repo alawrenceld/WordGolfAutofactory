@@ -1,0 +1,21 @@
+{
+  "pr": 18,
+  "branch": "feat/hint-button-ship",
+  "flag_key": "hint-button",
+  "flag_kind": "boolean",
+  "created_by": "auto-factory/flag-implementer",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "made_par",
+      "puzzle_completed"
+    ]
+  },
+  "wiring": {
+    "files_modified": ["apps/web/src/App.tsx"],
+    "evaluation_pattern": "useFlag(FLAG_KEYS.hintButton)",
+    "control_path": "showHintButton === false → Hint button is not rendered; hint() function is unreachable. Existing behavior preserved exactly.",
+    "treatment_path": "showHintButton === true → Hint button renders; hint() calls firstStepToward() BFS and surfaces a suggestion via feedback state."
+  },
+  "notes": "Flag 'hint-button' already existed in LaunchDarkly (idempotent reuse). FLAG_KEYS.hintButton and Flags['hint-button'] were pre-wired in packages/ld/src/flags.ts. Only App.tsx needed the useFlag evaluation and conditional render."
+}

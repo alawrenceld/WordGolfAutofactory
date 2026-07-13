@@ -36,6 +36,7 @@ export function App() {
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
+  const showHintButton = useFlag(FLAG_KEYS.hintButton);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -250,9 +251,11 @@ export function App() {
           <button type="button" onClick={undo} disabled={path.length <= 1}>
             Undo
           </button>
-          <button type="button" onClick={hint}>
-            Hint
-          </button>
+          {showHintButton && (
+            <button type="button" onClick={hint}>
+              Hint
+            </button>
+          )}
         </form>
       )}
 
