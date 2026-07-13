@@ -176,8 +176,20 @@ export function App() {
     const text = formatDailyShareText(today, moves, par);
     try {
       await navigator.clipboard.writeText(text);
+      // Business metric: the share action completed successfully.
+      try {
+        track(METRIC_EVENTS.resultShared);
+      } catch {
+        // intentionally swallowed — telemetry must not affect gameplay
+      }
       setFeedback({ kind: "info", text: "Result copied — paste anywhere to share." });
     } catch {
+      // Error metric: clipboard write failed.
+      try {
+        track(METRIC_EVENTS.clipboardError);
+      } catch {
+        // intentionally swallowed — telemetry must not affect gameplay
+      }
       setFeedback({ kind: "error", text: "Could not copy — try selecting the result manually." });
     }
   }
