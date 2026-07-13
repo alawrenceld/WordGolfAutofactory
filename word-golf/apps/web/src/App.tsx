@@ -178,6 +178,7 @@ export function App() {
     setPath([next.start]);
     setInput("");
     setFeedback(null);
+    setDifficultyNeedsPick(false);
     startTimeRef.current = Date.now();
     lastMoveRef.current = Date.now();
     completedRef.current = false;
