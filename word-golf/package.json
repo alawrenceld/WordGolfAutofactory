@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "npm run dev --workspace apps/web",
     "build": "npm run build --workspace apps/web",
-    "test": "npm run test --workspace packages/engine",
+    "test": "npm run test --workspace packages/engine && npm run test --workspace packages/ld",
     "verify:play": "node --import tsx scripts/verify-playthrough.ts",
     "typecheck": "tsc --build"
   },
