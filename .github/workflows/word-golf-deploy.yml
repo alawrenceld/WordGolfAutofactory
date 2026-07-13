@@ -115,29 +115,28 @@ jobs:
             done
           }
 
-          start_deployment() {
-            local attempt err
-            for attempt in $(seq 1 10); do
-              if err=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" \
-                    --query OperationId --output text 2>&1); then
-                echo "Started App Runner deployment: $err"
-                echo "$err"
-                return 0
-              fi
-              if echo "$err" | grep -q "isn't in RUNNING state"; then
-                echo "[$attempt] Service not RUNNING yet, waiting before retry..."
-                wait_for_running || return 1
-              else
-                echo "$err"
-                return 1
-              fi
-            done
-            echo "Failed to start deployment after 10 attempts"
-            return 1
-          }
-
           wait_for_running
-          OP=$(start_deployment)
+
+          OP=""
+          for attempt in $(seq 1 10); do
+            if err=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" \
+                  --query OperationId --output text 2>&1); then
+              OP="$err"
+              echo "Started App Runner deployment: $OP"
+              break
+            fi
+            if echo "$err" | grep -q "isn't in RUNNING state"; then
+              echo "[$attempt] Service not RUNNING yet, waiting before retry..."
+              wait_for_running
+            else
+              echo "$err"
+              exit 1
+            fi
+            if [ "$attempt" -eq 10 ]; then
+              echo "Failed to start deployment after 10 attempts"
+              exit 1
+            fi
+          done
 
           for i in $(seq 1 40); do
             ST=$(aws apprunner list-operations --service-arn "$SERVICE_ARN" \
