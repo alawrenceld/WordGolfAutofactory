@@ -8,6 +8,8 @@ export const METRIC_EVENTS = {
   madePar: "made_par",
   dailyReturned: "daily_returned",
   resultShared: "result_shared",
+  /** Fired each time a player clicks the Hint button (treatment path only). */
+  hintButtonUsed: "hint-button-used",
   // Latency (numeric metrics; pass `value`)
   timeToSolveMs: "time_to_solve_ms",
   moveLatencyMs: "move_latency_ms",

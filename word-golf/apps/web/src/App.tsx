@@ -120,12 +120,19 @@ export function App() {
 
   function hint() {
     if (won) return;
+    // Track hint usage for the guarded-release metric (occurrence only).
+    // Wrapped in try/catch so a tracking failure can never break the button.
+    try {
+      track(METRIC_EVENTS.hintButtonUsed);
+    } catch {
+      // intentionally swallowed — telemetry must not affect gameplay
+    }
     const step = firstStepToward(current, puzzle.target, graph);
     if (!step) {
       setFeedback({ kind: "info", text: "No hint available from here." });
       return;
     }
-    setFeedback({ kind: "info", text: `Try a word like “${step}”.` });
+    setFeedback({ kind: "info", text: `Try a word like "${step}".` });
   }
 
   function reset() {
@@ -184,7 +191,7 @@ export function App() {
 
       <section className="scoreboard">
         <Stat label="Moves" value={String(moves)} />
-        <Stat label="Par" value={puzzle.par === null ? "—" : String(puzzle.par)} />
+        <Stat label="Par" value={puzzle.par === null ? "\u2014" : String(puzzle.par)} />
         <Stat
           label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
           value={enableRandomPuzzle && !isDaily ? "Random" : today}
