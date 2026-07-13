@@ -91,3 +91,70 @@ test("flag-on: existing metric events are unchanged (control-path events unaffec
   assert.equal(METRIC_EVENTS.madePar, "made_par");
   assert.equal(METRIC_EVENTS.hintButtonUsed, "hint-button-used");
 });
+
+// ---------------------------------------------------------------------------
+// FLAG ON: clipboard error path (treatment path only — error metric event)
+// ---------------------------------------------------------------------------
+
+test("flag-on: METRIC_EVENTS.clipboardError has the correct namespaced event key string", () => {
+  // shareResult() calls track(METRIC_EVENTS.clipboardError) in the clipboard-
+  // write catch block (treatment path only). The guarded-release manifest wires
+  // "enable-share-result-button-clipboard-error" as a killswitch metric; this
+  // must match exactly.
+  assert.equal(
+    METRIC_EVENTS.clipboardError,
+    "enable-share-result-button-clipboard-error"
+  );
+});
+
+test("flag-on: METRIC_EVENTS.clipboardError is present in METRIC_EVENTS taxonomy", () => {
+  const values = Object.values(METRIC_EVENTS);
+  assert.ok(
+    values.includes("enable-share-result-button-clipboard-error"),
+    "enable-share-result-button-clipboard-error must appear in METRIC_EVENTS"
+  );
+});
+
+test("flag-on: METRIC_EVENTS.clipboardError is distinct from all other event keys", () => {
+  // Ensures no accidental collision — a collision would pollute the killswitch
+  // metric with unrelated events.
+  const allEvents = Object.entries(METRIC_EVENTS) as [string, string][];
+  const duplicates = allEvents.filter(
+    ([key, value]) =>
+      key !== "clipboardError" &&
+      value === "enable-share-result-button-clipboard-error"
+  );
+  assert.deepEqual(
+    duplicates,
+    [],
+    `"enable-share-result-button-clipboard-error" must not collide with other METRIC_EVENTS entries`
+  );
+});
+
+test("flag-on: clipboardError and resultShared event keys are distinct from each other", () => {
+  // Both events fire inside shareResult() but on opposite branches (success vs
+  // failure). They must never be the same string.
+  assert.notEqual(
+    METRIC_EVENTS.clipboardError,
+    METRIC_EVENTS.resultShared,
+    "clipboardError and resultShared must have different event keys"
+  );
+});
+
+// ---------------------------------------------------------------------------
+// FLAG OFF: clipboardError must never fire in control path
+// ---------------------------------------------------------------------------
+
+test("flag-off: shareResultButton default false ensures shareResult() is unreachable (clipboard-error branch never fires)", () => {
+  // The clipboard-error branch is inside shareResult(), which is only called
+  // from the Share result button. The button renders only when:
+  //   isDaily && enableShareResultButton === true
+  // With the flag default of false, the button is never rendered and
+  // METRIC_EVENTS.clipboardError can never be emitted.
+  assert.equal(FLAG_DEFAULTS["enable-share-result-button"], false);
+  // Confirm the event key itself exists and is correct (structural guard).
+  assert.equal(
+    METRIC_EVENTS.clipboardError,
+    "enable-share-result-button-clipboard-error"
+  );
+});
