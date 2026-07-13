@@ -43,13 +43,27 @@ export function App() {
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
   const showHintButton = useFlag(FLAG_KEYS.hintButton);
   const enableShareResultButton = useFlag(FLAG_KEYS.shareResultButton);
-  // Kept for flag evaluation (AutoFactory / experimentation); picker starts unset
-  // so players explicitly choose Easy / Medium / Hard before Random puzzle.
-  useFlag(FLAG_KEYS.wordPoolDifficulty);
+  // Treatment (enable-difficulty-picker-ux = true): difficulty starts unset;
+  // players must explicitly choose Easy / Medium / Hard before a Random puzzle.
+  // Control (false): difficulty is seeded from the word-pool-difficulty flag
+  // default, preserving the original UX exactly.
+  const enableDifficultyPickerUx = useFlag(FLAG_KEYS.enableDifficultyPickerUx);
+  const wordPoolDifficulty = useFlag(FLAG_KEYS.wordPoolDifficulty);
 
   const [practiceDifficulty, setPracticeDifficulty] =
-    useState<PracticeDifficulty | null>(null);
+    useState<PracticeDifficulty | null>(() =>
+      enableDifficultyPickerUx ? null : wordPoolDifficulty
+    );
   const [difficultyNeedsPick, setDifficultyNeedsPick] = useState(false);
+
+  // Control path only: keep practiceDifficulty in sync when the LD flag value
+  // changes (e.g. flag targeting updated while the tab is open). The treatment
+  // path intentionally ignores the flag default — the player's explicit pick wins.
+  useEffect(() => {
+    if (!enableDifficultyPickerUx) {
+      setPracticeDifficulty(wordPoolDifficulty);
+    }
+  }, [enableDifficultyPickerUx, wordPoolDifficulty]);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -207,17 +221,28 @@ export function App() {
   }
 
   function onRandomPuzzleClick() {
-    if (!practiceDifficulty) {
-      setDifficultyNeedsPick(true);
-      return;
+    if (enableDifficultyPickerUx) {
+      // Treatment: require an explicit difficulty selection first.
+      if (!practiceDifficulty) {
+        setDifficultyNeedsPick(true);
+        return;
+      }
+      newRandomPuzzle(practiceDifficulty);
+    } else {
+      // Control: original behavior — difficulty is always set (seeded from flag default).
+      newRandomPuzzle(practiceDifficulty ?? wordPoolDifficulty);
     }
-    newRandomPuzzle(practiceDifficulty);
   }
 
   function onDifficultyPick(level: PracticeDifficulty) {
     setPracticeDifficulty(level);
-    setDifficultyNeedsPick(false);
-    if (!isDaily) newRandomPuzzle(level);
+    if (enableDifficultyPickerUx) {
+      setDifficultyNeedsPick(false);
+      if (!isDaily) newRandomPuzzle(level);
+    } else {
+      // Control: same as original onClick inline handler.
+      if (!isDaily) newRandomPuzzle(level);
+    }
   }
 
   function backToDaily() {
