@@ -5,9 +5,9 @@
   "releasePlan": {
     "randomizationUnit": "user",
     "metricKeys": [
-      "word-pool-difficulty-practice-started",
+      "word-pool-difficulty-error",
       "word-pool-difficulty-latency",
-      "word-pool-difficulty-error"
+      "word-pool-difficulty-practice-started"
     ]
   },
   "releaseIntent": {
