@@ -1,3 +1,4 @@
+// Pipeline smoke-test marker (throwaway PR — no behavior change).
 import {
   useEffect,
   useRef,
