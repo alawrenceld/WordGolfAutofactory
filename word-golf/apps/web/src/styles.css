@@ -18,6 +18,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 .app {
@@ -151,6 +152,7 @@ body {
 
 .controls input {
   flex: 1;
+  min-width: 0;
   padding: 12px 14px;
   font-size: 1.1rem;
   text-transform: uppercase;
@@ -164,6 +166,19 @@ body {
 .controls input:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+/* Narrow viewports: the word input + Play/Undo/Hint buttons don't fit on one
+   row. Wrap instead of overflowing off-screen, with the input on its own
+   full-width row above the buttons. */
+@media (max-width: 480px) {
+  .controls {
+    flex-wrap: wrap;
+  }
+
+  .controls input {
+    flex-basis: 100%;
+  }
 }
 
 button {
