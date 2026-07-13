@@ -53,6 +53,33 @@
       "defaultVariation": 0,
       "hypothesis": "Practice mode raises engagement and return rate without harming daily completion.",
       "watchedMetric": "puzzle_completed"
+    },
+    {
+      "key": "enable-share-result-button",
+      "name": "Enable Share Result Button",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "A share button on daily wins raises viral spread without hurting completion.",
+      "watchedMetric": "result_shared"
+    },
+    {
+      "key": "enable-difficulty-picker-ux",
+      "name": "Enable Difficulty Picker UX (explicit pick required)",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "Requiring an explicit Easy/Medium/Hard pick before a random puzzle raises intentional engagement.",
+      "watchedMetric": "word-pool-difficulty-practice-started"
+    },
+    {
+      "key": "show-powered-by-footer",
+      "name": "Show Powered-by Footer",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "Footer attribution is cosmetic; null hypothesis (no-impact -> promote).",
+      "watchedMetric": "show-powered-by-footer-viewed"
     }
   ]
 }

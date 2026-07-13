@@ -27,14 +27,17 @@
 
 name: Word Golf — Deploy to App Runner
 
+# Queue overlapping dispatches instead of racing App Runner (issue #27).
+concurrency:
+  group: word-golf-deploy
+  cancel-in-progress: false
+
 on:
   pull_request:
     types: [closed]
-    paths:
-      - "word-golf/**"
-      - "!word-golf/**/*.md" # docs-only changes don't need a deploy
-      - "!word-golf/docs/**"
-      - ".github/workflows/word-golf-deploy.yml"
+    # No paths: filter — GitHub's path evaluation for pull_request:closed is
+    # unreliable when the base branch moves fast or bot commits land after open
+    # (issue #26). The redeploy job only dispatches; idempotent and cheap.
   workflow_dispatch:
 
 jobs:
@@ -95,8 +98,47 @@ jobs:
           SERVICE_ARN: ${{ vars.AWS_APPRUNNER_SERVICE_ARN }}
         run: |
           set -euo pipefail
-          OP=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" --query OperationId --output text)
-          echo "Started App Runner deployment: $OP"
+
+          wait_for_running() {
+            for i in $(seq 1 30); do
+              ST=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" \
+                --query 'Service.Status' --output text)
+              echo "[$i] service status: $ST"
+              if [ "$ST" = "RUNNING" ]; then
+                return 0
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Timed out waiting for service to reach RUNNING (last: $ST)"
+                return 1
+              fi
+              sleep 15
+            done
+          }
+
+          start_deployment() {
+            local attempt err
+            for attempt in $(seq 1 10); do
+              if err=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" \
+                    --query OperationId --output text 2>&1); then
+                echo "Started App Runner deployment: $err"
+                echo "$err"
+                return 0
+              fi
+              if echo "$err" | grep -q "isn't in RUNNING state"; then
+                echo "[$attempt] Service not RUNNING yet, waiting before retry..."
+                wait_for_running || return 1
+              else
+                echo "$err"
+                return 1
+              fi
+            done
+            echo "Failed to start deployment after 10 attempts"
+            return 1
+          }
+
+          wait_for_running
+          OP=$(start_deployment)
+
           for i in $(seq 1 40); do
             ST=$(aws apprunner list-operations --service-arn "$SERVICE_ARN" \
                   --query "OperationSummaryList[?Id=='${OP}'].Status | [0]" --output text)
