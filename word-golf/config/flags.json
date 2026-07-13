@@ -41,7 +41,7 @@
       "name": "Show Mission Control",
       "kind": "boolean",
       "variations": [false, true],
-      "defaultVariation": 1,
+      "defaultVariation": 0,
       "hypothesis": "Operational kill switch for the showcase panel.",
       "watchedMetric": null
     },
