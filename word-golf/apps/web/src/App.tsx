@@ -7,12 +7,14 @@ import {
 import {
   makeDailyPuzzle,
   makeRandomPuzzle,
+  neighbors,
   scoreLabel,
   utcDateString,
   validateMove,
   WORD_LENGTH,
   type MoveRejection,
   type Puzzle,
+  type WordGraph,
 } from "@word-golf/engine";
 import { FLAG_KEYS, METRIC_EVENTS, useFlag, useTrack } from "@word-golf/ld";
 import { graph, startPool, targetPool } from "./words.js";
@@ -34,6 +36,7 @@ export function App() {
   const track = useTrack();
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
+  const showHintButton = useFlag(FLAG_KEYS.hintButton);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -115,6 +118,23 @@ export function App() {
     setFeedback({ kind: "info", text: "Reverted to the previous word." });
   }
 
+  function hint() {
+    if (won) return;
+    // Track hint usage for the guarded-release metric (occurrence only).
+    // Wrapped in try/catch so a tracking failure can never break the button.
+    try {
+      track(METRIC_EVENTS.hintButtonUsed);
+    } catch {
+      // intentionally swallowed — telemetry must not affect gameplay
+    }
+    const step = firstStepToward(current, puzzle.target, graph);
+    if (!step) {
+      setFeedback({ kind: "info", text: "No hint available from here." });
+      return;
+    }
+    setFeedback({ kind: "info", text: `Try a word like "${step}".` });
+  }
+
   function reset() {
     setPath([puzzle.start]);
     setInput("");
@@ -171,7 +191,7 @@ export function App() {
 
       <section className="scoreboard">
         <Stat label="Moves" value={String(moves)} />
-        <Stat label="Par" value={puzzle.par === null ? "—" : String(puzzle.par)} />
+        <Stat label="Par" value={puzzle.par === null ? "\u2014" : String(puzzle.par)} />
         <Stat
           label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
           value={enableRandomPuzzle && !isDaily ? "Random" : today}
@@ -238,6 +258,11 @@ export function App() {
           <button type="button" onClick={undo} disabled={path.length <= 1}>
             Undo
           </button>
+          {showHintButton && (
+            <button type="button" onClick={hint}>
+              Hint
+            </button>
+          )}
         </form>
       )}
 
@@ -260,6 +285,42 @@ export function App() {
       )}
     </main>
   );
+}
+
+/**
+ * First word along a shortest path from `from` to `target` (the move a player
+ * should make next), or null when the target is unreachable. Breadth-first so
+ * the suggested step always lies on an optimal route.
+ */
+function firstStepToward(
+  from: string,
+  target: string,
+  graph: WordGraph
+): string | null {
+  if (from === target) return null;
+  const parent = new Map<string, string>();
+  const visited = new Set<string>([from]);
+  let frontier: string[] = [from];
+  while (frontier.length > 0) {
+    const next: string[] = [];
+    for (const word of frontier) {
+      for (const w of neighbors(word, graph)) {
+        if (visited.has(w)) continue;
+        visited.add(w);
+        parent.set(w, word);
+        if (w === target) {
+          let step = w;
+          for (let prev = parent.get(step); prev && prev !== from; prev = parent.get(step)) {
+            step = prev;
+          }
+          return step;
+        }
+        next.push(w);
+      }
+    }
+    frontier = next;
+  }
+  return null;
 }
 
 function WordChip({

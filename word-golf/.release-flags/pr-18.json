@@ -1,0 +1,63 @@
+{
+  "pr": 18,
+  "branch": "feat/hint-button-ship",
+  "flag_key": "hint-button",
+  "flag_kind": "boolean",
+  "created_by": "auto-factory/flag-implementer",
+  "releaseOverrides": {
+    "randomizationUnit": "user",
+    "metricKeys": [
+      "hint-button-error",
+      "hint-button-business",
+      "hint-button-latency",
+      "hint-button-used",
+      "made_par",
+      "puzzle_completed"
+    ]
+  },
+  "metrics": [
+    {
+      "key": "hint-button-error",
+      "category": "error",
+      "event_key": "puzzle_abandoned",
+      "role": "killswitch",
+      "source": "reused_event",
+      "randomization_unit": "user",
+      "description": "Puzzle abandonment rate — guards against the hint causing confusion/demoralisation. Lower is better; a regression flips the flag off."
+    },
+    {
+      "key": "hint-button-business",
+      "category": "business",
+      "event_key": "puzzle_completed",
+      "role": "killswitch",
+      "source": "reused_event",
+      "randomization_unit": "user",
+      "description": "Puzzle completion rate — primary success signal from config/flags.json hypothesis. Higher is better; a drop flips the flag off."
+    },
+    {
+      "key": "hint-button-latency",
+      "category": "latency",
+      "event_key": "time_to_solve_ms",
+      "role": "pause",
+      "source": "reused_event",
+      "randomization_unit": "user",
+      "description": "Time to solve in ms — softer signal. A sustained regression pauses rollout for human review rather than auto-flipping."
+    },
+    {
+      "key": "hint-button-used",
+      "category": "business",
+      "event_key": "hint-button-used",
+      "role": "monitoring",
+      "source": "newly_instrumented",
+      "randomization_unit": "user",
+      "description": "Hint click rate on the treatment path. Confirms discoverability and usage; observe-only, does not gate rollout."
+    }
+  ],
+  "wiring": {
+    "files_modified": ["apps/web/src/App.tsx", "packages/ld/src/events.ts"],
+    "evaluation_pattern": "useFlag(FLAG_KEYS.hintButton)",
+    "control_path": "showHintButton === false → Hint button is not rendered; hint() function is unreachable. Existing behavior preserved exactly.",
+    "treatment_path": "showHintButton === true → Hint button renders; clicking it tracks METRIC_EVENTS.hintButtonUsed then calls firstStepToward() BFS and surfaces a suggestion via feedback state."
+  },
+  "notes": "Flag 'hint-button' already existed in LaunchDarkly (idempotent reuse). FLAG_KEYS.hintButton and Flags['hint-button'] were pre-wired in packages/ld/src/flags.ts. hint-button-error/business/latency reuse existing track() calls already on both paths; hint-button-used is newly instrumented in hint() (treatment path only, wrapped in try/catch per M08). Randomization unit defaulted to 'user' from manifest. Pre-existing keys made_par and puzzle_completed retained in metricKeys per M05."
+}
