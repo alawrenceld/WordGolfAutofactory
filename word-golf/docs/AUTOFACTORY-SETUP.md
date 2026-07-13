@@ -145,6 +145,7 @@ npm run bridge -- upgrade             # apply to word-golf-factory
 - `word-golf/.autofactory/services.yaml` — deployable service registry (fail-soft if missing)
 - `.github/workflows/find-code-refs.yml` — on-merge code reference scan for the app project
 - `.github/workflows/auto-factory.yml` — installs `ld-find-code-refs` on PR runs for wrap-point edges
+- PR checkout is at the **repo root** (not a nested `app/` path) so the scanner sees `.git` while `SANDBOX_ROOT=word-golf` scopes the scan
 - `auto-factory-knowledge-graph` — **on** in the factory project (Enriched)
 
 Sources degrade gracefully: missing traces, code refs, or o11y auth produce warnings,
