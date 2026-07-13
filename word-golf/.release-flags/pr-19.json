@@ -5,9 +5,9 @@
   "releasePlan": {
     "randomizationUnit": "user",
     "metricKeys": [
-      "result_shared",
-      "daily_win_rate",
-      "clipboard_error_rate"
+      "enable-share-result-button-business",
+      "enable-share-result-button-error",
+      "enable-share-result-button-daily-win"
     ]
   },
   "releaseIntent": {
