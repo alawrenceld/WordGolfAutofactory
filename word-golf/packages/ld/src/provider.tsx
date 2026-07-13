@@ -1,9 +1,9 @@
 import { useMemo, type ReactNode } from "react";
 import {
-  LDProvider,
+  createLDReactProvider,
   useFlags as useLDFlags,
   useLDClient,
-} from "launchdarkly-react-client-sdk";
+} from "@launchdarkly/react-sdk";
 import Observability from "@launchdarkly/observability";
 import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
 import { FLAG_DEFAULTS, type Flags } from "./flags.js";
@@ -32,6 +32,9 @@ export interface LDRootProps {
  * plugin for errors, web vitals, and traces) and bridges flags + `track` into
  * our typed context. When it is absent (local dev, tests, no LD configured), it
  * renders an offline context with safe defaults and a no-op tracker.
+ *
+ * Requires @launchdarkly/react-sdk v4+ — the v3 client SDK silently ignores
+ * `options.plugins`, so observability only works with the v4 plugin API.
  */
 export function LDRoot({ clientSideID, children }: LDRootProps) {
   if (!clientSideID) {
@@ -39,15 +42,36 @@ export function LDRoot({ clientSideID, children }: LDRootProps) {
   }
 
   return (
-    <LDProvider
-      clientSideID={clientSideID}
-      options={{ plugins: [getObservabilityPlugin()] }}
-      reactOptions={{ useCamelCaseFlagKeys: false }}
-      context={{ kind: "user", anonymous: true }}
-    >
+    <LDConnected clientSideID={clientSideID}>
       <Bridge>{children}</Bridge>
-    </LDProvider>
+    </LDConnected>
   );
+}
+
+/** Wraps createLDReactProvider so we can pass a runtime client-side ID. */
+function LDConnected({
+  clientSideID,
+  children,
+}: {
+  clientSideID: string;
+  children: ReactNode;
+}) {
+  const LDProvider = useMemo(
+    () =>
+      createLDReactProvider(
+        clientSideID,
+        { kind: "user", anonymous: true },
+        {
+          ldOptions: {
+            plugins: [getObservabilityPlugin()],
+            useCamelCaseFlagKeys: false,
+          },
+        }
+      ),
+    [clientSideID]
+  );
+
+  return <LDProvider>{children}</LDProvider>;
 }
 
 /** Reads the live SDK state and exposes it through our typed context. */
