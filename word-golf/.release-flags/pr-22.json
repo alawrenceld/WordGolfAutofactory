@@ -7,7 +7,7 @@
     "metricKeys": [
       "word-pool-difficulty-error",
       "word-pool-difficulty-latency",
-      "word-pool-difficulty-business"
+      "word-pool-difficulty-practice-started"
     ]
   },
   "releaseIntent": {

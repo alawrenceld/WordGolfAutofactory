@@ -73,7 +73,7 @@
       "description": "Player left mid-puzzle after at least one move."
     },
     {
-      "key": "word-pool-difficulty-business",
+      "key": "word-pool-difficulty-practice-started",
       "name": "Practice Puzzle Started",
       "category": "business",
       "kind": "custom",
