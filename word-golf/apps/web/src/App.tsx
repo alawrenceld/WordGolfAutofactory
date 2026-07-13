@@ -48,7 +48,14 @@ export function App() {
   // Control (false): difficulty is seeded from the word-pool-difficulty flag
   // default, preserving the original UX exactly.
   const enableDifficultyPickerUx = useFlag(FLAG_KEYS.enableDifficultyPickerUx);
-  const wordPoolDifficulty = useFlag(FLAG_KEYS.wordPoolDifficulty);
+  const wordPoolDifficultyRaw = useFlag(FLAG_KEYS.wordPoolDifficulty);
+  // Defensive guard: word-pool-difficulty is documented (config/flags.json) as a
+  // 3-way string flag ("easy" | "medium" | "hard"), but flag misconfiguration in
+  // LaunchDarkly could serve an unexpected value (e.g. a boolean). Falling back to
+  // "medium" avoids crashing puzzle generation on the control path.
+  const wordPoolDifficulty = PRACTICE_DIFFICULTY_LEVELS.includes(wordPoolDifficultyRaw)
+    ? wordPoolDifficultyRaw
+    : "medium";
   const showPoweredByFooter = useFlag(FLAG_KEYS.showPoweredByFooter);
 
   // Business metric: fire once when the footer is rendered (treatment path).
