@@ -13,6 +13,7 @@ export const FLAG_KEYS = {
   enableRandomPuzzle: "enable-random-puzzle",
   shareResultButton: "enable-share-result-button",
   enableDifficultyPickerUx: "enable-difficulty-picker-ux",
+  showPoweredByFooter: "show-powered-by-footer",
 } as const;
 
 export type ParAlgorithm = "shortest" | "no-reuse" | "heuristic";
@@ -27,6 +28,7 @@ export interface Flags {
   "enable-random-puzzle": boolean;
   "enable-share-result-button": boolean;
   "enable-difficulty-picker-ux": boolean;
+  "show-powered-by-footer": boolean;
 }
 
 /**
@@ -45,4 +47,8 @@ export const FLAG_DEFAULTS: Flags = {
   // Control path: false → original UX (difficulty seeded from word-pool-difficulty flag default).
   // Treatment path: true  → new UX (difficulty starts unset; player must explicitly pick before requesting a random puzzle).
   "enable-difficulty-picker-ux": false,
+  // Control path: false → footer hidden (existing behavior, no footer rendered).
+  // Treatment path: true  → "Powered by LaunchDarkly" footer with CodeControl /
+  //                          AgentControl / Software Factory links is rendered.
+  "show-powered-by-footer": false,
 };

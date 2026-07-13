@@ -28,6 +28,11 @@ export const METRIC_EVENTS = {
   // Error
   invalidMove: "invalid_move",
   puzzleAbandoned: "puzzle_abandoned",
+  // show-powered-by-footer guarded-release events
+  /** Fired once per page load when the "Powered by LaunchDarkly" footer is
+   *  rendered (treatment path only). Occurrence metric — higher is better
+   *  (business). */
+  poweredByFooterViewed: "show-powered-by-footer-viewed",
 } as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[keyof typeof METRIC_EVENTS];
