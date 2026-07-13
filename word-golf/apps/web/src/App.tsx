@@ -6,7 +6,7 @@ import {
 } from "react";
 import {
   makeDailyPuzzle,
-  makeRandomPuzzle,
+  makePracticePuzzle,
   neighbors,
   relativeToPar,
   scoreLabel,
@@ -14,11 +14,15 @@ import {
   validateMove,
   WORD_LENGTH,
   type MoveRejection,
+  type PracticeDifficulty,
   type Puzzle,
   type WordGraph,
+  PRACTICE_DIFFICULTIES,
 } from "@word-golf/engine";
 import { FLAG_KEYS, METRIC_EVENTS, useFlag, useTrack } from "@word-golf/ld";
-import { graph, startPool, targetPool } from "./words.js";
+import { graph, practicePools, startPool, targetPool } from "./words.js";
+
+const PRACTICE_DIFFICULTY_LEVELS = PRACTICE_DIFFICULTIES;
 
 const REJECTION_COPY: Record<MoveRejection, string> = {
   "wrong-length": `Use exactly ${WORD_LENGTH} letters.`,
@@ -39,6 +43,15 @@ export function App() {
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
   const showHintButton = useFlag(FLAG_KEYS.hintButton);
   const enableShareResultButton = useFlag(FLAG_KEYS.shareResultButton);
+  const wordPoolDifficulty = useFlag(FLAG_KEYS.wordPoolDifficulty);
+
+  // Practice difficulty is local UI state, seeded from the flag default.
+  const [practiceDifficulty, setPracticeDifficulty] =
+    useState<PracticeDifficulty>(wordPoolDifficulty);
+
+  useEffect(() => {
+    setPracticeDifficulty(wordPoolDifficulty);
+  }, [wordPoolDifficulty]);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -158,11 +171,41 @@ export function App() {
     completedRef.current = false;
   }
 
-  function newRandomPuzzle() {
-    startPuzzle(
-      makeRandomPuzzle({ startPool, graph, steps: 6, targetPool }),
-      false
-    );
+  function newRandomPuzzle(difficulty: PracticeDifficulty = practiceDifficulty) {
+    const pools = practicePools(difficulty);
+    const genStart = Date.now();
+    try {
+      const puzzle = makePracticePuzzle({
+        difficulty,
+        graph,
+        steps: 6,
+        ...pools,
+      });
+      // Latency: measure puzzle-generation time (both treatment and control paths).
+      try {
+        track(METRIC_EVENTS.practicePuzzleGenerationMs, {
+          value: Date.now() - genStart,
+          data: { difficulty },
+        });
+      } catch {
+        // telemetry must not affect gameplay
+      }
+      // Business: practice puzzle successfully started.
+      try {
+        track(METRIC_EVENTS.practicePuzzleStarted, { data: { difficulty } });
+      } catch {
+        // telemetry must not affect gameplay
+      }
+      startPuzzle(puzzle, false);
+    } catch (err) {
+      // Error: puzzle generation failed.
+      try {
+        track(METRIC_EVENTS.practicePuzzleError, { data: { difficulty } });
+      } catch {
+        // telemetry must not affect gameplay
+      }
+      throw err;
+    }
   }
 
   function backToDaily() {
@@ -218,13 +261,33 @@ export function App() {
         <Stat label="Par" value={puzzle.par === null ? "\u2014" : String(puzzle.par)} />
         <Stat
           label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
-          value={enableRandomPuzzle && !isDaily ? "Random" : today}
+          value={
+            enableRandomPuzzle && !isDaily
+              ? practiceDifficulty.charAt(0).toUpperCase() + practiceDifficulty.slice(1)
+              : today
+          }
         />
       </section>
 
       {enableRandomPuzzle && (
         <section className="puzzle-actions">
-          <button type="button" onClick={newRandomPuzzle}>
+          <div className="difficulty-picker" role="group" aria-label="Practice difficulty">
+            {PRACTICE_DIFFICULTY_LEVELS.map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={practiceDifficulty === level ? "active" : ""}
+                aria-pressed={practiceDifficulty === level}
+                onClick={() => {
+                  setPracticeDifficulty(level);
+                  if (!isDaily) newRandomPuzzle(level);
+                }}
+              >
+                {level.charAt(0).toUpperCase() + level.slice(1)}
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => newRandomPuzzle()}>
             Random puzzle
           </button>
           {!isDaily && (

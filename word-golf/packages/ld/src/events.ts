@@ -12,6 +12,16 @@ export const METRIC_EVENTS = {
   clipboardError: "enable-share-result-button-clipboard-error",
   /** Fired each time a player clicks the Hint button (treatment path only). */
   hintButtonUsed: "hint-button-used",
+  // word-pool-difficulty guarded-release events
+  /** Fired when a practice puzzle is successfully generated (both treatment and control).
+   *  Occurrence metric — higher is better (business). */
+  practicePuzzleStarted: "word-pool-difficulty-practice-started",
+  /** Fired when puzzle generation duration is measured (both treatment and control).
+   *  Numeric metric — value is elapsed ms (latency). */
+  practicePuzzleGenerationMs: "word-pool-difficulty-latency",
+  /** Fired when practice puzzle generation throws an error (both treatment and control).
+   *  Occurrence metric — lower is better (error/killswitch). */
+  practicePuzzleError: "word-pool-difficulty-error",
   // Latency (numeric metrics; pass `value`)
   timeToSolveMs: "time_to_solve_ms",
   moveLatencyMs: "move_latency_ms",

@@ -222,9 +222,31 @@ button:disabled {
 
 .puzzle-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.difficulty-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.difficulty-picker button {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.difficulty-picker button.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(108, 140, 255, 0.12);
 }
 
 .puzzle-actions .link {

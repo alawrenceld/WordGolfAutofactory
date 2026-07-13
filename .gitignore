@@ -1,6 +1,9 @@
 # Separately-cloned upstream repo; not part of this project's history.
 launchdarkly-auto-factory/
 
+# Nested factory checkout in CI (separate git repo).
+tool/
+
 # Dependencies & build output
 node_modules/
 dist/
