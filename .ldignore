@@ -1,0 +1,2 @@
+# Nested factory checkout in CI (separate git repo); not part of the app.
+tool/
