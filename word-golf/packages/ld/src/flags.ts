@@ -11,6 +11,7 @@ export const FLAG_KEYS = {
   dailyTheme: "daily-theme",
   showMissionControl: "show-mission-control",
   enableRandomPuzzle: "enable-random-puzzle",
+  shareResultButton: "enable-share-result-button",
 } as const;
 
 export type ParAlgorithm = "shortest" | "no-reuse" | "heuristic";
@@ -23,6 +24,7 @@ export interface Flags {
   "daily-theme": string;
   "show-mission-control": boolean;
   "enable-random-puzzle": boolean;
+  "enable-share-result-button": boolean;
 }
 
 /**
@@ -37,4 +39,5 @@ export const FLAG_DEFAULTS: Flags = {
   "daily-theme": "",
   "show-mission-control": false,
   "enable-random-puzzle": false,
+  "enable-share-result-button": false,
 };

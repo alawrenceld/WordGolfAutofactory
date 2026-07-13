@@ -38,6 +38,7 @@ export function App() {
   const showMissionControl = useFlag(FLAG_KEYS.showMissionControl);
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
   const showHintButton = useFlag(FLAG_KEYS.hintButton);
+  const enableShareResultButton = useFlag(FLAG_KEYS.shareResultButton);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -247,7 +248,7 @@ export function App() {
             {puzzle.par !== null ? ` (par ${puzzle.par})` : ""}
           </h2>
           <div className="win-actions">
-            {isDaily && (
+            {isDaily && enableShareResultButton && (
               <button type="button" onClick={shareResult}>
                 Share result
               </button>
