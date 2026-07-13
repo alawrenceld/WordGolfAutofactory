@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.1",
-  "flagKey": "word-pool-difficulty",
+  "flagKey": "enable-difficulty-picker-ux",
   "scope": "frontend",
   "releasePlan": {
     "randomizationUnit": "user",

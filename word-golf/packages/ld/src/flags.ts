@@ -12,6 +12,7 @@ export const FLAG_KEYS = {
   showMissionControl: "show-mission-control",
   enableRandomPuzzle: "enable-random-puzzle",
   shareResultButton: "enable-share-result-button",
+  enableDifficultyPickerUx: "enable-difficulty-picker-ux",
 } as const;
 
 export type ParAlgorithm = "shortest" | "no-reuse" | "heuristic";
@@ -25,6 +26,7 @@ export interface Flags {
   "show-mission-control": boolean;
   "enable-random-puzzle": boolean;
   "enable-share-result-button": boolean;
+  "enable-difficulty-picker-ux": boolean;
 }
 
 /**
@@ -40,4 +42,7 @@ export const FLAG_DEFAULTS: Flags = {
   "show-mission-control": false,
   "enable-random-puzzle": false,
   "enable-share-result-button": false,
+  // Control path: false → original UX (difficulty seeded from word-pool-difficulty flag default).
+  // Treatment path: true  → new UX (difficulty starts unset; player must explicitly pick before requesting a random puzzle).
+  "enable-difficulty-picker-ux": false,
 };

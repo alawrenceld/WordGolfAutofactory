@@ -43,15 +43,27 @@ export function App() {
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
   const showHintButton = useFlag(FLAG_KEYS.hintButton);
   const enableShareResultButton = useFlag(FLAG_KEYS.shareResultButton);
+  // Treatment (enable-difficulty-picker-ux = true): difficulty starts unset;
+  // players must explicitly choose Easy / Medium / Hard before a Random puzzle.
+  // Control (false): difficulty is seeded from the word-pool-difficulty flag
+  // default, preserving the original UX exactly.
+  const enableDifficultyPickerUx = useFlag(FLAG_KEYS.enableDifficultyPickerUx);
   const wordPoolDifficulty = useFlag(FLAG_KEYS.wordPoolDifficulty);
 
-  // Practice difficulty is local UI state, seeded from the flag default.
   const [practiceDifficulty, setPracticeDifficulty] =
-    useState<PracticeDifficulty>(wordPoolDifficulty);
+    useState<PracticeDifficulty | null>(() =>
+      enableDifficultyPickerUx ? null : wordPoolDifficulty
+    );
+  const [difficultyNeedsPick, setDifficultyNeedsPick] = useState(false);
 
+  // Control path only: keep practiceDifficulty in sync when the LD flag value
+  // changes (e.g. flag targeting updated while the tab is open). The treatment
+  // path intentionally ignores the flag default — the player's explicit pick wins.
   useEffect(() => {
-    setPracticeDifficulty(wordPoolDifficulty);
-  }, [wordPoolDifficulty]);
+    if (!enableDifficultyPickerUx) {
+      setPracticeDifficulty(wordPoolDifficulty);
+    }
+  }, [enableDifficultyPickerUx, wordPoolDifficulty]);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -166,12 +178,13 @@ export function App() {
     setPath([next.start]);
     setInput("");
     setFeedback(null);
+    setDifficultyNeedsPick(false);
     startTimeRef.current = Date.now();
     lastMoveRef.current = Date.now();
     completedRef.current = false;
   }
 
-  function newRandomPuzzle(difficulty: PracticeDifficulty = practiceDifficulty) {
+  function newRandomPuzzle(difficulty: PracticeDifficulty) {
     const pools = practicePools(difficulty);
     const genStart = Date.now();
     try {
@@ -205,6 +218,31 @@ export function App() {
         // telemetry must not affect gameplay
       }
       throw err;
+    }
+  }
+
+  function onRandomPuzzleClick() {
+    if (enableDifficultyPickerUx) {
+      // Treatment: require an explicit difficulty selection first.
+      if (!practiceDifficulty) {
+        setDifficultyNeedsPick(true);
+        return;
+      }
+      newRandomPuzzle(practiceDifficulty);
+    } else {
+      // Control: original behavior — difficulty is always set (seeded from flag default).
+      newRandomPuzzle(practiceDifficulty ?? wordPoolDifficulty);
+    }
+  }
+
+  function onDifficultyPick(level: PracticeDifficulty) {
+    setPracticeDifficulty(level);
+    if (enableDifficultyPickerUx) {
+      setDifficultyNeedsPick(false);
+      if (!isDaily) newRandomPuzzle(level);
+    } else {
+      // Control: same as original onClick inline handler.
+      if (!isDaily) newRandomPuzzle(level);
     }
   }
 
@@ -262,7 +300,7 @@ export function App() {
         <Stat
           label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
           value={
-            enableRandomPuzzle && !isDaily
+            enableRandomPuzzle && !isDaily && practiceDifficulty
               ? practiceDifficulty.charAt(0).toUpperCase() + practiceDifficulty.slice(1)
               : today
           }
@@ -271,25 +309,26 @@ export function App() {
 
       {enableRandomPuzzle && (
         <section className="puzzle-actions">
-          <div className="difficulty-picker" role="group" aria-label="Practice difficulty">
+          <button type="button" onClick={onRandomPuzzleClick}>
+            Random puzzle
+          </button>
+          <div
+            className={`difficulty-picker${difficultyNeedsPick ? " needs-pick" : ""}`}
+            role="group"
+            aria-label="Practice difficulty"
+          >
             {PRACTICE_DIFFICULTY_LEVELS.map((level) => (
               <button
                 key={level}
                 type="button"
                 className={practiceDifficulty === level ? "active" : ""}
                 aria-pressed={practiceDifficulty === level}
-                onClick={() => {
-                  setPracticeDifficulty(level);
-                  if (!isDaily) newRandomPuzzle(level);
-                }}
+                onClick={() => onDifficultyPick(level)}
               >
                 {level.charAt(0).toUpperCase() + level.slice(1)}
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => newRandomPuzzle()}>
-            Random puzzle
-          </button>
           {!isDaily && (
             <button type="button" className="link" onClick={backToDaily}>
               Back to today's daily
