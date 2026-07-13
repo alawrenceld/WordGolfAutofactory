@@ -71,6 +71,33 @@
       "unit": "count",
       "successCriteria": "LowerThanBaseline",
       "description": "Player left mid-puzzle after at least one move."
+    },
+    {
+      "key": "word-pool-difficulty-business",
+      "name": "Practice Puzzle Started",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "A practice puzzle was successfully generated for the selected difficulty."
+    },
+    {
+      "key": "word-pool-difficulty-latency",
+      "name": "Practice Puzzle Generation (ms)",
+      "category": "latency",
+      "kind": "numeric",
+      "unit": "ms",
+      "successCriteria": "LowerThanBaseline",
+      "description": "Milliseconds to generate a practice puzzle."
+    },
+    {
+      "key": "word-pool-difficulty-error",
+      "name": "Practice Puzzle Generation Error",
+      "category": "error",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "LowerThanBaseline",
+      "description": "Practice puzzle generation threw an error."
     }
   ]
 }

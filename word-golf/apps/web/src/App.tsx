@@ -17,11 +17,12 @@ import {
   type PracticeDifficulty,
   type Puzzle,
   type WordGraph,
+  PRACTICE_DIFFICULTIES,
 } from "@word-golf/engine";
 import { FLAG_KEYS, METRIC_EVENTS, useFlag, useTrack } from "@word-golf/ld";
 import { graph, practicePools, startPool, targetPool } from "./words.js";
 
-const PRACTICE_DIFFICULTIES: PracticeDifficulty[] = ["easy", "medium", "hard"];
+const PRACTICE_DIFFICULTY_LEVELS = PRACTICE_DIFFICULTIES;
 
 const REJECTION_COPY: Record<MoveRejection, string> = {
   "wrong-length": `Use exactly ${WORD_LENGTH} letters.`,
@@ -271,7 +272,7 @@ export function App() {
       {enableRandomPuzzle && (
         <section className="puzzle-actions">
           <div className="difficulty-picker" role="group" aria-label="Practice difficulty">
-            {PRACTICE_DIFFICULTIES.map((level) => (
+            {PRACTICE_DIFFICULTY_LEVELS.map((level) => (
               <button
                 key={level}
                 type="button"

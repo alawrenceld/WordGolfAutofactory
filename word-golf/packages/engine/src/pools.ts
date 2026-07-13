@@ -29,6 +29,12 @@ export function buildDailyPools(answers: string[], common: string[]): DailyPools
   return { startPool, targetPool: common };
 }
 
+export const PRACTICE_DIFFICULTIES: readonly PracticeDifficulty[] = [
+  "easy",
+  "medium",
+  "hard",
+];
+
 /** Practice-only pools; daily generation ignores difficulty entirely. */
 export function practicePoolsForDifficulty(
   difficulty: PracticeDifficulty,

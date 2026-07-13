@@ -204,10 +204,10 @@ function makeHardPracticePuzzle(options: {
     if (!starts.length) continue;
     const start = pick(rng, starts);
     const par = bfsPar(start, target, graph);
-    if (par === null || par < minPar) continue;
+    if (par === null) continue;
     const puzzle: Puzzle = { start, target, par };
     if (par >= minPar) return puzzle;
-    if (!best || (best.par ?? 0) < par) best = puzzle;
+    if (best === null || par > (best.par ?? 0)) best = puzzle;
   }
   return best;
 }
@@ -216,13 +216,14 @@ function startsAtMinPar(
   target: string,
   graph: WordGraph,
   minPar: number,
-  allowedStarts: Set<string>
+  allowedStarts: Set<string>,
+  maxDepth = minPar + 16
 ): string[] {
   const visited = new Set([target]);
   let frontier = [target];
   let distance = 0;
   const hits: string[] = [];
-  while (frontier.length) {
+  while (frontier.length && distance < maxDepth) {
     distance++;
     const next: string[] = [];
     for (const word of frontier) {
