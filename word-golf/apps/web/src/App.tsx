@@ -49,6 +49,18 @@ export function App() {
   // default, preserving the original UX exactly.
   const enableDifficultyPickerUx = useFlag(FLAG_KEYS.enableDifficultyPickerUx);
   const wordPoolDifficulty = useFlag(FLAG_KEYS.wordPoolDifficulty);
+  const showPoweredByFooter = useFlag(FLAG_KEYS.showPoweredByFooter);
+
+  // Business metric: fire once when the footer is rendered (treatment path).
+  // Wrapped in try/catch so a tracking failure can never break the page.
+  useEffect(() => {
+    if (!showPoweredByFooter) return;
+    try {
+      track(METRIC_EVENTS.poweredByFooterViewed);
+    } catch {
+      // intentionally swallowed — telemetry must not affect rendering
+    }
+  }, [showPoweredByFooter, track]);
 
   const [practiceDifficulty, setPracticeDifficulty] =
     useState<PracticeDifficulty | null>(() =>
@@ -411,6 +423,35 @@ export function App() {
             </button>
           )}
         </section>
+      )}
+
+      {showPoweredByFooter && (
+        <footer className="powered-by">
+          Powered by LaunchDarkly{" "}
+          <a
+            href="https://launchdarkly.com/platform/code-control/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            CodeControl
+          </a>
+          {" · "}
+          <a
+            href="https://launchdarkly.com/platform/agent-control/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            AgentControl
+          </a>
+          {" · "}
+          <a
+            href="https://github.com/alawrenceld/launchdarkly-auto-factory"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Software Factory Reference Design
+          </a>
+        </footer>
       )}
 
       {/* Flag-evaluation seam: gated by the `show-mission-control` flag. The
