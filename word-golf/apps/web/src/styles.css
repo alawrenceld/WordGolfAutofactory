@@ -213,6 +213,13 @@ button:disabled {
   margin: 0 0 12px;
 }
 
+.win-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
 .puzzle-actions {
   display: flex;
   align-items: center;
