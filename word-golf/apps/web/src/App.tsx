@@ -307,36 +307,6 @@ export function App() {
         />
       </section>
 
-      {enableRandomPuzzle && (
-        <section className="puzzle-actions">
-          <button type="button" onClick={onRandomPuzzleClick}>
-            Random puzzle
-          </button>
-          <div
-            className={`difficulty-picker${difficultyNeedsPick ? " needs-pick" : ""}`}
-            role="group"
-            aria-label="Practice difficulty"
-          >
-            {PRACTICE_DIFFICULTY_LEVELS.map((level) => (
-              <button
-                key={level}
-                type="button"
-                className={practiceDifficulty === level ? "active" : ""}
-                aria-pressed={practiceDifficulty === level}
-                onClick={() => onDifficultyPick(level)}
-              >
-                {level.charAt(0).toUpperCase() + level.slice(1)}
-              </button>
-            ))}
-          </div>
-          {!isDaily && (
-            <button type="button" className="link" onClick={backToDaily}>
-              Back to today's daily
-            </button>
-          )}
-        </section>
-      )}
-
       <ol className="track" aria-label="Move history">
         {path.map((word, i) => (
           <li
@@ -406,6 +376,41 @@ export function App() {
         >
           {feedback.text}
         </p>
+      )}
+
+      {enableRandomPuzzle && (
+        <section className="puzzle-actions" aria-labelledby="try-another-heading">
+          <h2 id="try-another-heading" className="puzzle-actions-heading">
+            Try another puzzle?
+          </h2>
+          <div className="puzzle-actions-row">
+            <button type="button" onClick={onRandomPuzzleClick}>
+              Random puzzle
+            </button>
+            <div
+              className={`difficulty-picker${difficultyNeedsPick ? " needs-pick" : ""}`}
+              role="group"
+              aria-label="Practice difficulty"
+            >
+              {PRACTICE_DIFFICULTY_LEVELS.map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className={practiceDifficulty === level ? "active" : ""}
+                  aria-pressed={practiceDifficulty === level}
+                  onClick={() => onDifficultyPick(level)}
+                >
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          {!isDaily && (
+            <button type="button" className="link" onClick={backToDaily}>
+              Back to today's daily
+            </button>
+          )}
+        </section>
       )}
 
       {/* Flag-evaluation seam: gated by the `show-mission-control` flag. The
