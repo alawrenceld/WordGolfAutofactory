@@ -43,15 +43,13 @@ export function App() {
   const enableRandomPuzzle = useFlag(FLAG_KEYS.enableRandomPuzzle);
   const showHintButton = useFlag(FLAG_KEYS.hintButton);
   const enableShareResultButton = useFlag(FLAG_KEYS.shareResultButton);
-  const wordPoolDifficulty = useFlag(FLAG_KEYS.wordPoolDifficulty);
+  // Kept for flag evaluation (AutoFactory / experimentation); picker starts unset
+  // so players explicitly choose Easy / Medium / Hard before Random puzzle.
+  useFlag(FLAG_KEYS.wordPoolDifficulty);
 
-  // Practice difficulty is local UI state, seeded from the flag default.
   const [practiceDifficulty, setPracticeDifficulty] =
-    useState<PracticeDifficulty>(wordPoolDifficulty);
-
-  useEffect(() => {
-    setPracticeDifficulty(wordPoolDifficulty);
-  }, [wordPoolDifficulty]);
+    useState<PracticeDifficulty | null>(null);
+  const [difficultyNeedsPick, setDifficultyNeedsPick] = useState(false);
 
   // The active puzzle is stateful so players can switch between the shared
   // daily and one-off random "practice" puzzles.
@@ -171,7 +169,7 @@ export function App() {
     completedRef.current = false;
   }
 
-  function newRandomPuzzle(difficulty: PracticeDifficulty = practiceDifficulty) {
+  function newRandomPuzzle(difficulty: PracticeDifficulty) {
     const pools = practicePools(difficulty);
     const genStart = Date.now();
     try {
@@ -206,6 +204,20 @@ export function App() {
       }
       throw err;
     }
+  }
+
+  function onRandomPuzzleClick() {
+    if (!practiceDifficulty) {
+      setDifficultyNeedsPick(true);
+      return;
+    }
+    newRandomPuzzle(practiceDifficulty);
+  }
+
+  function onDifficultyPick(level: PracticeDifficulty) {
+    setPracticeDifficulty(level);
+    setDifficultyNeedsPick(false);
+    if (!isDaily) newRandomPuzzle(level);
   }
 
   function backToDaily() {
@@ -262,7 +274,7 @@ export function App() {
         <Stat
           label={enableRandomPuzzle && !isDaily ? "Practice" : "Daily"}
           value={
-            enableRandomPuzzle && !isDaily
+            enableRandomPuzzle && !isDaily && practiceDifficulty
               ? practiceDifficulty.charAt(0).toUpperCase() + practiceDifficulty.slice(1)
               : today
           }
@@ -271,25 +283,26 @@ export function App() {
 
       {enableRandomPuzzle && (
         <section className="puzzle-actions">
-          <div className="difficulty-picker" role="group" aria-label="Practice difficulty">
+          <button type="button" onClick={onRandomPuzzleClick}>
+            Random puzzle
+          </button>
+          <div
+            className={`difficulty-picker${difficultyNeedsPick ? " needs-pick" : ""}`}
+            role="group"
+            aria-label="Practice difficulty"
+          >
             {PRACTICE_DIFFICULTY_LEVELS.map((level) => (
               <button
                 key={level}
                 type="button"
                 className={practiceDifficulty === level ? "active" : ""}
                 aria-pressed={practiceDifficulty === level}
-                onClick={() => {
-                  setPracticeDifficulty(level);
-                  if (!isDaily) newRandomPuzzle(level);
-                }}
+                onClick={() => onDifficultyPick(level)}
               >
                 {level.charAt(0).toUpperCase() + level.slice(1)}
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => newRandomPuzzle()}>
-            Random puzzle
-          </button>
           {!isDaily && (
             <button type="button" className="link" onClick={backToDaily}>
               Back to today's daily
