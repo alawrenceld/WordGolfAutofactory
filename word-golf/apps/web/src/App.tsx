@@ -413,6 +413,33 @@ export function App() {
         </section>
       )}
 
+      <footer className="powered-by">
+        Powered by LaunchDarkly{" "}
+        <a
+          href="https://launchdarkly.com/platform/code-control/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          CodeControl
+        </a>
+        {" · "}
+        <a
+          href="https://launchdarkly.com/platform/agent-control/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          AgentControl
+        </a>
+        {" · "}
+        <a
+          href="https://github.com/alawrenceld/launchdarkly-auto-factory"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Software Factory Reference Design
+        </a>
+      </footer>
+
       {/* Flag-evaluation seam: gated by the `show-mission-control` flag. The
           AutoFactory can flip this in LaunchDarkly; the real panel arrives in a
           later phase. */}
