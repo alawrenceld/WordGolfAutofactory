@@ -1,0 +1,9 @@
+# Service registry for AutoFactory knowledge-graph assembly (ADR 0010).
+# Consumed at PR time from word-golf/.autofactory/services.yaml (SANDBOX_ROOT).
+services:
+  word-golf-web:
+    side: frontend
+    repo: alawrenceld/WordGolfAutofactory
+    statusUrl: https://wordgolffactory.launchdarklydemos.com
+    hosts:
+      - wordgolffactory.launchdarklydemos.com

@@ -119,6 +119,41 @@ The factory lives in three layers that can drift apart:
    provisioned into the `word-golf-factory` project. This is what each PR run
    reads at runtime.
 
+### Synced to upstream — 2026-07-13 (`bridge upgrade` + knowledge graph)
+
+Tom's Friday prototype update added the **`config-bridge`** CLI and a 6th agent
+(manifest-steward). We rebased our fork onto upstream (`ba78830` on
+`alawrenceld/launchdarkly-auto-factory`) and upgraded the live factory project
+in place — no wipe/rebootstrap needed:
+
+```bash
+cd launchdarkly-auto-factory   # local clone (gitignored sibling of this repo)
+git pull origin main
+npm install && npm run build
+npm run bridge -- upgrade --dry-run   # preview
+npm run bridge -- upgrade             # apply to word-golf-factory
+```
+
+**What changed in LD (`word-golf-factory`):**
+
+- **Created:** `autofactory-manifest-steward` agent, `auto-factory-knowledge-graph` flag
+- **Updated:** graph `gha-auto-factory` (6-step chain), instructions on planner / implementer / metrics-author / reviewer
+- **Preserved:** custom targeting on `auto-factory-ai-provider`, approval flags, etc.
+
+**Knowledge graph (enabled):**
+
+- `word-golf/.autofactory/services.yaml` — deployable service registry (fail-soft if missing)
+- `.github/workflows/find-code-refs.yml` — on-merge code reference scan for the app project
+- `.github/workflows/auto-factory.yml` — installs `ld-find-code-refs` on PR runs for wrap-point edges
+- `auto-factory-knowledge-graph` — **on** in the factory project (Enriched)
+
+Sources degrade gracefully: missing traces, code refs, or o11y auth produce warnings,
+never failed runs.
+
+Going forward, after pulling upstream factory changes, run `npm run bridge -- upgrade`
+instead of wiping + `bootstrap`. The action warns (but does not fail) if LD configs
+lag behind the checked-out action code.
+
 ### Synced to upstream — 2026-07-09
 
 Our fork `main` was hard-reset to `upstream/main` (`2d33e8d`, ADR 0008 approval

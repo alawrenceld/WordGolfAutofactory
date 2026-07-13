@@ -60,6 +60,15 @@ jobs:
         run: npm ci
         working-directory: tool
 
+      # Knowledge graph (auto-factory-knowledge-graph flag): ld-find-code-refs at
+      # the PR SHA for flag→code wrap-point edges. Without the binary the run
+      # still succeeds — it warns and skips that source.
+      - name: Install ld-find-code-refs (knowledge-graph wrap points)
+        continue-on-error: true
+        run: |
+          curl -fsSL https://github.com/launchdarkly/ld-find-code-refs/releases/download/v2.14.0/ld-find-code-refs_2.14.0_linux_amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin ld-find-code-refs
+
       - name: Run AutoFactory Phase 1
         working-directory: app # cwd = your code; agent git ops happen here
         run: node "$GITHUB_WORKSPACE/tool/packages/phase1-resource-factory/dist/action.bundle.js"

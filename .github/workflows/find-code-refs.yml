@@ -1,0 +1,24 @@
+# Pushes LaunchDarkly code references on every merge to main, so each flag's
+# page in LaunchDarkly shows exactly where it lives in the code — and so the
+# AutoFactory knowledge graph can resolve flag→code wrap points on PRs.
+#
+# Uses the same LD_API_KEY secret the AutoFactory workflow already needs.
+
+name: LaunchDarkly code references
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  coderefs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 11 # the scanner inspects recent history for branch info
+
+      - uses: launchdarkly/find-code-references@v2.14.0
+        with:
+          accessToken: ${{ secrets.LD_API_KEY }}
+          projKey: ${{ vars.LD_APP_PROJECT_KEY }}
