@@ -98,6 +98,33 @@
       "unit": "count",
       "successCriteria": "LowerThanBaseline",
       "description": "Practice puzzle generation threw an error."
+    },
+    {
+      "key": "hint-button-used",
+      "name": "Hint Button Used",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "Player clicked the Hint button (treatment path only)."
+    },
+    {
+      "key": "show-powered-by-footer-viewed",
+      "name": "Powered-by Footer Viewed",
+      "category": "business",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "HigherThanBaseline",
+      "description": "The Powered by LaunchDarkly footer was rendered (treatment path only)."
+    },
+    {
+      "key": "enable-share-result-button-clipboard-error",
+      "name": "Share Result Clipboard Error",
+      "category": "error",
+      "kind": "custom",
+      "unit": "count",
+      "successCriteria": "LowerThanBaseline",
+      "description": "Clipboard write failed when sharing a daily result."
     }
   ]
 }

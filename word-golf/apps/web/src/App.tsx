@@ -75,12 +75,15 @@ export function App() {
     );
   const [difficultyNeedsPick, setDifficultyNeedsPick] = useState(false);
 
-  // Control path only: keep practiceDifficulty in sync when the LD flag value
-  // changes (e.g. flag targeting updated while the tab is open). The treatment
-  // path intentionally ignores the flag default — the player's explicit pick wins.
+  // Control path: sync practiceDifficulty from word-pool-difficulty flag.
+  // Treatment path: when the flag turns on (e.g. after LD hydration), clear any
+  // control-path seed so the player must explicitly pick Easy/Medium/Hard.
   useEffect(() => {
     if (!enableDifficultyPickerUx) {
       setPracticeDifficulty(wordPoolDifficulty);
+    } else {
+      setPracticeDifficulty(null);
+      setDifficultyNeedsPick(false);
     }
   }, [enableDifficultyPickerUx, wordPoolDifficulty]);
 

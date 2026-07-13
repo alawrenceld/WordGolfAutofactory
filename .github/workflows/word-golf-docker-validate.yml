@@ -13,6 +13,25 @@ on:
       - ".github/workflows/word-golf-docker-validate.yml"
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: word-golf/package-lock.json
+      - name: Install dependencies
+        working-directory: word-golf
+        run: npm ci
+      - name: Typecheck
+        working-directory: word-golf
+        run: npm run typecheck
+      - name: Test
+        working-directory: word-golf
+        run: npm test
+
   docker-build:
     runs-on: ubuntu-latest
     steps:
