@@ -28,7 +28,7 @@ function getSessionReplayPlugin(): SessionReplay {
     sessionReplayPlugin = new SessionReplay({
       serviceName: SERVICE_NAME,
       manualStart: true,
-      privacySetting: "strict",
+      privacySetting: "none",
     });
   }
   return sessionReplayPlugin;
