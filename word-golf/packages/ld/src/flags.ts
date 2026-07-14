@@ -14,6 +14,7 @@ export const FLAG_KEYS = {
   shareResultButton: "enable-share-result-button",
   enableDifficultyPickerUx: "enable-difficulty-picker-ux",
   showPoweredByFooter: "show-powered-by-footer",
+  enableSessionReplay: "enable-session-replay",
 } as const;
 
 export type ParAlgorithm = "shortest" | "no-reuse" | "heuristic";
@@ -29,6 +30,7 @@ export interface Flags {
   "enable-share-result-button": boolean;
   "enable-difficulty-picker-ux": boolean;
   "show-powered-by-footer": boolean;
+  "enable-session-replay": boolean;
 }
 
 /**
@@ -51,4 +53,7 @@ export const FLAG_DEFAULTS: Flags = {
   // Treatment path: true  → "Powered by LaunchDarkly" footer with CodeControl /
   //                          AgentControl / Software Factory links is rendered.
   "show-powered-by-footer": false,
+  // Control path: false → session replay off (privacy default for word-game input).
+  // Treatment path: true  → LDRecord.start() records anonymized replays in LD.
+  "enable-session-replay": false,
 };

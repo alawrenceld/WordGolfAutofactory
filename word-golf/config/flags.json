@@ -80,6 +80,15 @@
       "defaultVariation": 0,
       "hypothesis": "Footer attribution is cosmetic; null hypothesis (no-impact -> promote).",
       "watchedMetric": "show-powered-by-footer-viewed"
+    },
+    {
+      "key": "enable-session-replay",
+      "name": "Enable Session Replay",
+      "kind": "boolean",
+      "variations": [false, true],
+      "defaultVariation": 0,
+      "hypothesis": "Session replay unlocks LD flag Monitoring and session-level debugging; off by default for input privacy.",
+      "watchedMetric": null
     }
   ]
 }

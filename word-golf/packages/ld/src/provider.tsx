@@ -1,22 +1,37 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   createLDReactProvider,
   useFlags as useLDFlags,
   useLDClient,
 } from "@launchdarkly/react-sdk";
 import Observability from "@launchdarkly/observability";
+import SessionReplay, { LDRecord } from "@launchdarkly/session-replay";
 import { LDContext, defaultLD, type WordGolfLD } from "./context.js";
-import { FLAG_DEFAULTS, type Flags } from "./flags.js";
+import { FLAG_DEFAULTS, FLAG_KEYS, type Flags } from "./flags.js";
 import type { TrackFn } from "./events.js";
 
-let observabilityPlugin: Observability | null = null;
+const SERVICE_NAME = "word-golf-web";
 
-/** Lazily construct the plugin only when a live LD client is in play. */
+let observabilityPlugin: Observability | null = null;
+let sessionReplayPlugin: SessionReplay | null = null;
+
+/** Lazily construct plugins only when a live LD client is in play. */
 function getObservabilityPlugin(): Observability {
   if (!observabilityPlugin) {
-    observabilityPlugin = new Observability();
+    observabilityPlugin = new Observability({ serviceName: SERVICE_NAME });
   }
   return observabilityPlugin;
+}
+
+function getSessionReplayPlugin(): SessionReplay {
+  if (!sessionReplayPlugin) {
+    sessionReplayPlugin = new SessionReplay({
+      serviceName: SERVICE_NAME,
+      manualStart: true,
+      privacySetting: "strict",
+    });
+  }
+  return sessionReplayPlugin;
 }
 
 export interface LDRootProps {
@@ -43,6 +58,7 @@ export function LDRoot({ clientSideID, children }: LDRootProps) {
 
   return (
     <LDConnected clientSideID={clientSideID}>
+      <SessionReplayGate />
       <Bridge>{children}</Bridge>
     </LDConnected>
   );
@@ -63,7 +79,7 @@ function LDConnected({
         { kind: "user", anonymous: true },
         {
           ldOptions: {
-            plugins: [getObservabilityPlugin()],
+            plugins: [getObservabilityPlugin(), getSessionReplayPlugin()],
             useCamelCaseFlagKeys: false,
           },
         }
@@ -72,6 +88,30 @@ function LDConnected({
   );
 
   return <LDProvider>{children}</LDProvider>;
+}
+
+/**
+ * Starts session replay only when the enable-session-replay flag is on.
+ * manualStart keeps replay off by default (word-game input privacy).
+ */
+function SessionReplayGate() {
+  const ldFlags = useLDFlags();
+  const replayEnabled = Boolean(ldFlags[FLAG_KEYS.enableSessionReplay]);
+  const wasEnabled = useRef(false);
+
+  useEffect(() => {
+    if (replayEnabled) {
+      LDRecord.start({ silent: true });
+      wasEnabled.current = true;
+      return;
+    }
+    if (wasEnabled.current) {
+      LDRecord.stop();
+      wasEnabled.current = false;
+    }
+  }, [replayEnabled]);
+
+  return null;
 }
 
 /** Reads the live SDK state and exposes it through our typed context. */
