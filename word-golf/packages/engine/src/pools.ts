@@ -35,6 +35,17 @@ export const PRACTICE_DIFFICULTIES: readonly PracticeDifficulty[] = [
   "hard",
 ];
 
+/** Coerce unknown runtime values (e.g. misconfigured LD flags) to a safe level. */
+export function normalizePracticeDifficulty(raw: unknown): PracticeDifficulty {
+  if (
+    typeof raw === "string" &&
+    (PRACTICE_DIFFICULTIES as readonly string[]).includes(raw)
+  ) {
+    return raw as PracticeDifficulty;
+  }
+  return "medium";
+}
+
 /** Practice-only pools; daily generation ignores difficulty entirely. */
 export function practicePoolsForDifficulty(
   difficulty: PracticeDifficulty,
@@ -43,7 +54,8 @@ export function practicePoolsForDifficulty(
   difficult: string[]
 ): PracticePoolOptions {
   const daily = buildDailyPools(answers, common);
-  switch (difficulty) {
+  const level = normalizePracticeDifficulty(difficulty);
+  switch (level) {
     case "easy":
       return { ...daily, minPar: 3 };
     case "medium":
@@ -58,6 +70,13 @@ export function practicePoolsForDifficulty(
         targetPool: daily.targetPool,
         minPar: 5,
         hardTargetPool: difficult,
+      };
+    default:
+      // Exhaustiveness guard — should be unreachable after normalizePracticeDifficulty.
+      return {
+        startPool: answers,
+        targetPool: daily.targetPool,
+        minPar: 4,
       };
   }
 }

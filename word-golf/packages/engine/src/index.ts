@@ -7,7 +7,15 @@ export type {
 } from "./types.js";
 
 export { parseWordList } from "./wordlists.js";
-export { buildDailyPools, practicePoolsForDifficulty, PRACTICE_DIFFICULTIES, type DailyPools, type PracticeDifficulty, type PracticePoolOptions } from "./pools.js";
+export {
+  buildDailyPools,
+  practicePoolsForDifficulty,
+  normalizePracticeDifficulty,
+  PRACTICE_DIFFICULTIES,
+  type DailyPools,
+  type PracticeDifficulty,
+  type PracticePoolOptions,
+} from "./pools.js";
 export { buildWordGraph, neighbors, isValidWord } from "./graph.js";
 export { bfsPar } from "./par.js";
 export { validateMove, letterDiff } from "./move.js";

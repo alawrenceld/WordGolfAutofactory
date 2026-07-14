@@ -8,6 +8,7 @@ import {
   makeDailyPuzzle,
   makePracticePuzzle,
   neighbors,
+  normalizePracticeDifficulty,
   relativeToPar,
   scoreLabel,
   utcDateString,
@@ -53,9 +54,7 @@ export function App() {
   // 3-way string flag ("easy" | "medium" | "hard"), but flag misconfiguration in
   // LaunchDarkly could serve an unexpected value (e.g. a boolean). Falling back to
   // "medium" avoids crashing puzzle generation on the control path.
-  const wordPoolDifficulty = PRACTICE_DIFFICULTY_LEVELS.includes(wordPoolDifficultyRaw)
-    ? wordPoolDifficultyRaw
-    : "medium";
+  const wordPoolDifficulty = normalizePracticeDifficulty(wordPoolDifficultyRaw);
   const showPoweredByFooter = useFlag(FLAG_KEYS.showPoweredByFooter);
 
   // Business metric: fire once when the footer is rendered (treatment path).
@@ -210,11 +209,12 @@ export function App() {
   }
 
   function newRandomPuzzle(difficulty: PracticeDifficulty) {
-    const pools = practicePools(difficulty);
+    const level = normalizePracticeDifficulty(difficulty);
+    const pools = practicePools(level);
     const genStart = Date.now();
     try {
       const puzzle = makePracticePuzzle({
-        difficulty,
+        difficulty: level,
         graph,
         steps: 6,
         ...pools,
