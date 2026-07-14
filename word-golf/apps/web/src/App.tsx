@@ -103,7 +103,6 @@ export function App() {
   const current = path[path.length - 1];
   const moves = path.length - 1;
   const won = current === puzzle.target;
-  const par = puzzle.par ?? moves;
 
   // Timing + once-only guards for metric events.
   const startTimeRef = useRef(Date.now());
@@ -114,12 +113,16 @@ export function App() {
   useEffect(() => {
     if (!won || completedRef.current) return;
     completedRef.current = true;
-    track(METRIC_EVENTS.puzzleCompleted, { data: { moves, par } });
+    track(METRIC_EVENTS.puzzleCompleted, {
+      data: { moves, par: puzzle.par },
+    });
     track(METRIC_EVENTS.timeToSolveMs, {
       value: Date.now() - startTimeRef.current,
     });
-    if (moves <= par) track(METRIC_EVENTS.madePar, { data: { moves, par } });
-  }, [won, moves, par, track]);
+    if (puzzle.par !== null && moves <= puzzle.par) {
+      track(METRIC_EVENTS.madePar, { data: { moves, par: puzzle.par } });
+    }
+  }, [won, moves, puzzle.par, track]);
 
   // Error: count an abandon if the player leaves mid-puzzle after moving.
   const wonRef = useRef(won);
@@ -232,14 +235,17 @@ export function App() {
         // telemetry must not affect gameplay
       }
       startPuzzle(puzzle, false);
-    } catch (err) {
-      // Error: puzzle generation failed.
+    } catch {
+      // Error: puzzle generation failed — show feedback instead of crashing.
       try {
         track(METRIC_EVENTS.practicePuzzleError, { data: { difficulty } });
       } catch {
         // telemetry must not affect gameplay
       }
-      throw err;
+      setFeedback({
+        kind: "error",
+        text: "Couldn't generate a puzzle — try again or pick another difficulty.",
+      });
     }
   }
 
@@ -276,7 +282,8 @@ export function App() {
   }
 
   async function shareResult() {
-    const text = formatDailyShareText(today, moves, par);
+    if (puzzle.par === null) return;
+    const text = formatDailyShareText(today, moves, puzzle.par);
     try {
       await navigator.clipboard.writeText(text);
       // Business metric: the share action completed successfully.
@@ -350,8 +357,9 @@ export function App() {
       {won ? (
         <section className="win">
           <h2>
-            {scoreLabel(moves, par)} — solved in {moves}
-            {puzzle.par !== null ? ` (par ${puzzle.par})` : ""}
+            {puzzle.par !== null
+              ? `${scoreLabel(moves, puzzle.par)} — solved in ${moves} (par ${puzzle.par})`
+              : `Solved in ${moves}`}
           </h2>
           <div className="win-actions">
             {isDaily && enableShareResultButton && (
