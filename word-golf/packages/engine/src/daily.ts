@@ -78,6 +78,10 @@ export function makeDailyPuzzle(options: DailyOptions): Puzzle {
   const minPar = options.minPar ?? 3;
   const rng = seededRng(dateUtc);
 
+  if (!Array.isArray(startPool) || startPool.length === 0) {
+    throw new Error("makeDailyPuzzle requires a non-empty startPool array.");
+  }
+
   // Only start from pool words that exist in the graph and have neighbors.
   const candidates = startPool.filter(
     (w) => graph.valid.has(w) && neighbors(w, graph).length > 0
